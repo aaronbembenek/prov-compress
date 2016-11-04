@@ -1,0 +1,78 @@
+#!/usr/bin/python3
+
+# Given a JSON file with Camflow-style provenance data, constructs a provenance
+# graph and a dictionary of metadata.
+
+import json
+import sys
+
+class Edge:
+    def __init__(self, dest, label):
+        self.dest = dest
+        self.label = label
+
+    def __repr__(self):
+        return '(dest = "%s", label = "%s")' % (self.dest, self.label)
+
+class Metadata:
+    def __init__(self, typ, data):
+        self.typ = typ
+        self.data = data
+
+    def __repr__(self):
+        return '(typ = "%s", data = "%s")' % (self.typ, self.data)
+
+# Returns an adjacency-list style graph and dictionary of metadata, both
+# indexed by Camflow provenance identifier.
+def process_json(infile):
+    recognized_typs = ["prefix", "activity", "entity", "relation"]
+    metadata = {}
+    graph = {}
+    with open(infile) as f:
+        for line in f:
+            i = line.find("{")
+            if i == -1:
+                continue
+            line = line[i:]
+            for typ, entries in json.loads(line).items():
+                assert typ in recognized_typs
+                if typ == "prefix":
+                    continue
+                for identifier, data in entries.items():
+                    assert identifier not in metadata
+                    metadata[identifier] = Metadata(typ, data)
+                    if typ == "relation":
+                        tail = data["cf:receiver"]
+                        head = data["cf:sender"]
+                        graph.setdefault(tail, []).append(
+                                Edge(head, identifier))
+                    else:
+                        # This is just so that we have a node in the graph
+                        # for every entity/activity.
+                        if identifier not in graph:
+                            graph[identifier] = []
+    return graph, metadata
+
+# Returns a string of the graph in DOT format. To view a file in DOT format,
+# use `dot -Tps file.dot -o output.ps`.
+def graph_to_dot(graph):
+    s = ["digraph prov {"]
+    for v, edges in graph.items():
+        s.extend(['\t"%s" -> "%s;"' % (v, edge.dest) for edge in edges])
+    s.append("}")
+    return "\n".join(s)
+
+def main():
+    if len(sys.argv) < 2:
+        print("No input file: defaulting to /tmp/audit.log.")
+        infile = "/tmp/audit.log"
+    elif len(sys.argv) == 2:
+        infile = sys.argv[1]
+    else:
+        print("Cannot supply more than one input file.")
+        sys.exit(1)
+    graph, metadata = process_json(infile)
+    print(graph_to_dot(graph))
+
+if __name__ == "__main__":
+    main()

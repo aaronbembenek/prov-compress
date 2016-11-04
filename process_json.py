@@ -6,6 +6,8 @@
 import json
 import sys
 
+RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation"]
+
 class Edge:
     def __init__(self, dest, label):
         self.dest = dest
@@ -25,7 +27,6 @@ class Metadata:
 # Returns an adjacency-list style graph and dictionary of metadata, both
 # indexed by Camflow provenance identifier.
 def process_json(infile):
-    recognized_typs = ["prefix", "activity", "entity", "relation"]
     metadata = {}
     graph = {}
     with open(infile) as f:
@@ -35,7 +36,7 @@ def process_json(infile):
                 continue
             line = line[i:]
             for typ, entries in json.loads(line).items():
-                assert typ in recognized_typs
+                assert typ in RECOGNIZED_TYPS
                 if typ == "prefix":
                     continue
                 for identifier, data in entries.items():
@@ -62,6 +63,27 @@ def graph_to_dot(graph):
     s.append("}")
     return "\n".join(s)
 
+# Returns a string of the graph in gspan format. 
+# Run gSpan -f provgspan -s 0.1 -o -i. Output will be located in provspan.fp
+# All gSpan input needs to be ints: vertex ids, edge ids, and typ ids are 
+# all mapped to ints and printed out.
+def graph_to_gspan(graph, metadata):
+    # initialize dictionaries mapping vertex/edge ids to ints
+    ids_to_ints = {}
+    v_ctr = 0
+    e_ctr = 0
+    for v, edges in graph.items():
+        ids_to_ints[v] = v_ctr;
+        v_ctr += 1
+        for edge in edges:
+            ids_to_ints[edge.label] = e_ctr;
+            e_ctr += 1
+    s = ["t # 0"]
+    for v, edges in graph.items():
+        s.append('v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ)))
+        s.append(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest]) for edge in edges])
+    return ids_to_ints, "\n".join(s)
+
 def main():
     if len(sys.argv) < 2:
         print("No input file: defaulting to /tmp/audit.log.")
@@ -72,7 +94,9 @@ def main():
         print("Cannot supply more than one input file.")
         sys.exit(1)
     graph, metadata = process_json(infile)
-    print(graph_to_dot(graph))
+    dots_input = graph_to_dot(graph)
+    ids_to_ints, gspan_input = graph_to_gspan(graph, metadata)
+    print(gspan_input)
 
 if __name__ == "__main__":
     main()

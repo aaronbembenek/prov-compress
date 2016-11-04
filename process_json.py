@@ -6,7 +6,7 @@
 import json
 import sys
 
-RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation"]
+RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 
 class Edge:
     def __init__(self, dest, label):
@@ -40,11 +40,21 @@ def process_json(infile):
                 if typ == "prefix":
                     continue
                 for identifier, data in entries.items():
-                    assert identifier not in metadata
+                    # XXX see comment below for why this assertion is wrong
+                    # assert identifier not in metadata
                     metadata[identifier] = Metadata(typ, data)
                     if typ == "relation":
                         tail = data["cf:receiver"]
                         head = data["cf:sender"]
+                        # there are relations defined where the sender ID 
+                        # is never actually defined as an entity/activity
+                        # add empty metadata for these
+                        if head not in metadata:
+                            metadata[head] = Metadata('unknown', [])
+                            graph[head] = []
+                        if tail not in metadata:
+                            metadata[tail] = Metadata('unknown', [])
+                            graph[tail] = []
                         graph.setdefault(tail, []).append(
                                 Edge(head, identifier))
                     else:
@@ -76,16 +86,15 @@ def graph_to_gspan(graph, metadata):
         ids_to_ints[v] = v_ctr;
         v_ctr += 1
         for edge in edges:
-            if edge.dest not in ids_to_ints:
-                ids_to_ints[edge.dest] = v_ctr;
-                v_ctr += 1
             ids_to_ints[edge.label] = e_ctr;
             e_ctr += 1
     s = ["t # 0"]
+    vs = []
+    es = []
     for v, edges in graph.items():
-        s.extend(['v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ))])
-        s.extend(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest], ids_to_ints[edge.label]) for edge in edges])
-    return ids_to_ints, "\n".join(s)
+        vs.extend(['v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ))])
+        es.extend(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest], ids_to_ints[edge.label]) for edge in edges])
+    return ids_to_ints, "\n".join(s + vs + es)
 
 def main():
     if len(sys.argv) < 2:

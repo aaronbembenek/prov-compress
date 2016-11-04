@@ -76,12 +76,15 @@ def graph_to_gspan(graph, metadata):
         ids_to_ints[v] = v_ctr;
         v_ctr += 1
         for edge in edges:
+            if edge.dest not in ids_to_ints:
+                ids_to_ints[edge.dest] = v_ctr;
+                v_ctr += 1
             ids_to_ints[edge.label] = e_ctr;
             e_ctr += 1
     s = ["t # 0"]
     for v, edges in graph.items():
-        s.append('v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ)))
-        s.append(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest]) for edge in edges])
+        s.extend(['v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ))])
+        s.extend(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest], ids_to_ints[edge.label]) for edge in edges])
     return ids_to_ints, "\n".join(s)
 
 def main():

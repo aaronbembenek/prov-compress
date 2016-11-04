@@ -29,6 +29,7 @@ class Metadata:
 def process_json(infile):
     metadata = {}
     graph = {}
+    missing_nodes = set()
     with open(infile) as f:
         for line in f:
             i = line.find("{")
@@ -36,32 +37,36 @@ def process_json(infile):
                 continue
             line = line[i:]
             for typ, entries in json.loads(line).items():
-                assert typ in RECOGNIZED_TYPS
+                assert typ in RECOGNIZED_TYPS and typ != "unknown"
                 if typ == "prefix":
                     continue
                 for identifier, data in entries.items():
                     # XXX see comment below for why this assertion is wrong
-                    # assert identifier not in metadata
+                    # XXX I want this assertion to be checked to confirm that
+                    # we are correct in our assumption that each entry in the
+                    # JSON has a unique ID.
+                    assert identifier not in metadata
                     metadata[identifier] = Metadata(typ, data)
+                    missing_nodes.discard(identifier)
                     if typ == "relation":
                         tail = data["cf:receiver"]
                         head = data["cf:sender"]
                         # there are relations defined where the sender ID 
                         # is never actually defined as an entity/activity
                         # add empty metadata for these
-                        if head not in metadata:
-                            metadata[head] = Metadata('unknown', [])
-                            graph[head] = []
-                        if tail not in metadata:
-                            metadata[tail] = Metadata('unknown', [])
-                            graph[tail] = []
+                        for v in [head, tail]:
+                            if v not in metadata:
+                                missing_nodes.add(v)
                         graph.setdefault(tail, []).append(
                                 Edge(head, identifier))
                     else:
                         # This is just so that we have a node in the graph
                         # for every entity/activity.
-                        if identifier not in graph:
-                            graph[identifier] = []
+                        graph.setdefault(identifier, [])
+    for identifier in missing_nodes:
+        assert identifier not in metadata
+        metadata[identifier] = Metadata("unknown", None)
+        graph.setdefault(identifier, [])
     return graph, metadata
 
 # Returns a string of the graph in DOT format. To view a file in DOT format,

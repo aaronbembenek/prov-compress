@@ -63,28 +63,37 @@ def process_json(infile):
                         # This is just so that we have a node in the graph
                         # for every entity/activity.
                         graph.setdefault(identifier, [])
-    for identifier in missing_nodes:
+    for i, identifier in enumerate(missing_nodes):
         assert identifier not in metadata
-        metadata[identifier] = Metadata("unknown", None)
+        metadata[identifier] = Metadata("unknown", {'cf:id':-i, 'cf:type':None})
         graph.setdefault(identifier, [])
     return graph, metadata
 
 # Returns a string of the graph in DOT format. To view a file in DOT format,
 # use `dot -Tps file.dot -o output.ps`.
 def graph_to_dot(graph, metadata):
+    '''
     s = ["digraph prov {"]
     for v, edges in graph.items():
-        s.extend(['\t"%s" -> "%s;"' % (metadata[v]['cf:id'], metadata[edge.dest]['cf:id']) for edge in edges])
+        s.extend(['\t"%s" -> "%s";' % (str(metadata[v].data['cf:id']) + ", " + str(metadata[v].data['cf:type']), str(metadata[edge.dest].data['cf:id']) + ", " + str(metadata[edge.dest].data['cf:type'])) for edge in edges])
     s.append("}")
     return "\n".join(s)
+    '''
+    ids_to_ints = {}
+    v_ctr = 0
+    e_ctr = 0
+    for v, edges in graph.items():
+        ids_to_ints[v] = v_ctr;
+        v_ctr += 1
+        for edge in edges:
+            ids_to_ints[edge.label] = e_ctr;
+            e_ctr += 1
 
-    '''
     s = ["digraph prov {"]
     for v, edges in graph.items():
-        s.extend(['\t"%s" -> "%s;"' % (v, edge.dest) for edge in edges])
+        s.extend(['\t"%s" -> "%s;"' % (str(metadata[v].data['cf:id']) + ', ' + str(ids_to_ints[v]), str(metadata[edge.dest].data['cf:id']) + ', '+ str(ids_to_ints[edge.dest])) for edge in edges])
     s.append("}")
     return "\n".join(s)
-    '''
 
 # Returns a string of the graph in gspan format. 
 # Run gSpan -f provgspan -s 0.1 -o -i. Output will be located in provspan.fp

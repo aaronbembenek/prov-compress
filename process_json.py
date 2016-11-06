@@ -66,12 +66,20 @@ def process_json(infile):
 
 # Returns a string of the graph in DOT format. To view a file in DOT format,
 # use `dot -Tps file.dot -o output.ps`.
-def graph_to_dot(graph):
+def graph_to_dot(graph, metadata):
+    s = ["digraph prov {"]
+    for v, edges in graph.items():
+        s.extend(['\t"%s" -> "%s;"' % (metadata[v]['cf:id'], metadata[edge.dest]['cf:id']) for edge in edges])
+    s.append("}")
+    return "\n".join(s)
+
+    '''
     s = ["digraph prov {"]
     for v, edges in graph.items():
         s.extend(['\t"%s" -> "%s;"' % (v, edge.dest) for edge in edges])
     s.append("}")
     return "\n".join(s)
+    '''
 
 # Returns a string of the graph in gspan format. 
 # Run gSpan -f provgspan -s 0.1 -o -i. Output will be located in provspan.fp
@@ -93,7 +101,7 @@ def graph_to_gspan(graph, metadata):
     es = []
     for v, edges in graph.items():
         vs.extend(['v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ))])
-        es.extend(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest], ids_to_ints[edge.label]) for edge in edges])
+        es.extend(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest], 0) for edge in edges])
     return ids_to_ints, "\n".join(s + vs + es)
 
 def main():
@@ -106,9 +114,10 @@ def main():
         print("Cannot supply more than one input file.")
         sys.exit(1)
     graph, metadata = process_json(infile)
-    dots_input = graph_to_dot(graph)
-    ids_to_ints, gspan_input = graph_to_gspan(graph, metadata)
-    print(gspan_input)
+    dots_input = graph_to_dot(graph, metadata)
+    print dots_input
+    #ids_to_ints, gspan_input = graph_to_gspan(graph, metadata)
+    #print(gspan_input)
 
 if __name__ == "__main__":
     main()

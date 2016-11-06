@@ -91,9 +91,15 @@ def graph_to_dot(graph, metadata):
 
     s = ["digraph prov {"]
     for v, edges in graph.items():
-        s.extend(['\t"%s" -> "%s";' % (
-            str(metadata[v].data['cf:type']) + ", " + str(metadata[v].data['cf:id']) + ', ' + str(ids_to_ints[v]), 
-                str(metadata[edge.dest].data['cf:type']) + ", " + str(metadata[edge.dest].data['cf:id']) + ', '+ str(ids_to_ints[edge.dest])) for edge in edges])
+        s.extend(['\t"%s" -> "%s" [label="%s"];' % (
+            str(metadata[v].data['cf:type']) + ", " 
+                + str(metadata[v].data['cf:id']) + ', ' 
+                + str(ids_to_ints[v]), 
+            str(metadata[edge.dest].data['cf:type']) + ", " 
+                + str(metadata[edge.dest].data['cf:id']) + ', '
+                + str(ids_to_ints[edge.dest]),
+            metadata[edge.label].data['cf:type'])
+            for edge in edges])
     s.append("}")
     return "\n".join(s)
 

@@ -137,16 +137,17 @@ def compress_node_metadata(infile):
 #   Data corresponding to keys are separated by a comma
 #   Extra keys/data pairs are identified with a $
 #   A new relation is identified with a #.
-'''
-e.g.
-    Default: 160,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
-    0,0,0,None,0,0,0,0,0,0,0#
-    2,0,0,None,0,0,read,read,0,0,-44#
-    -21,0,0,None,2016:11:03T22:07:06.978,0,version,version,0,-30,-16
-'''
 # Currently, only integer references are compressed (delta-encoded against the default)
 # Strings (including time) are written without compression
 def compress_relation_metadata(infile):
+    '''
+    Example output:
+        Default: 160,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
+        0,0,0,None,0,0,0,0,0,0,0#
+        2,0,0,None,0,0,read,read,0,0,-44#
+        -21,0,0,None,2016:11:03T22:07:06.978,0,version,version,0,-30,-16
+    '''
+
     graph, metadata = process_json(infile)
     iti = identifier_to_int(graph)
     # id, boot_id, machine_id, version, date, taint, jiffies, 

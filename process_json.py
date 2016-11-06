@@ -41,10 +41,7 @@ def process_json(infile):
                 if typ == "prefix":
                     continue
                 for identifier, data in entries.items():
-                    # XXX see comment below for why this assertion is wrong
-                    # XXX I want this assertion to be checked to confirm that
-                    # we are correct in our assumption that each entry in the
-                    # JSON has a unique ID.
+                    # confirm that each entry in the JSON has a unique ID.
                     assert identifier not in metadata
                     metadata[identifier] = Metadata(typ, data)
                     missing_nodes.discard(identifier)
@@ -69,35 +66,34 @@ def process_json(infile):
         graph.setdefault(identifier, [])
     return graph, metadata
 
-# Returns a string of the graph in DOT format. To view a file in DOT format,
-# use `dot -Tps file.dot -o output.ps`.
-def graph_to_dot(graph, metadata):
-    '''
-    s = ["digraph prov {"]
-    for v, edges in graph.items():
-        s.extend(['\t"%s" -> "%s";' % (str(metadata[v].data['cf:id']) + ", " + str(metadata[v].data['cf:type']), str(metadata[edge.dest].data['cf:id']) + ", " + str(metadata[edge.dest].data['cf:type'])) for edge in edges])
-    s.append("}")
-    return "\n".join(s)
-    '''
-    ids_to_ints = {}
+# Returns a dictionary mapping all identifier strings for vertices
+# and edges in the graph to unique integers
+def identifier_to_int(graph):
+    iti = {}
     v_ctr = 0
     e_ctr = 0
     for v, edges in graph.items():
-        ids_to_ints[v] = v_ctr
+        iti[v] = v_ctr
         v_ctr += 1
         for edge in edges:
-            ids_to_ints[edge.label] = e_ctr
+            iti[edge.label] = e_ctr
             e_ctr += 1
+    return iti 
 
+# Returns a string of the graph in DOT format. To view a file in DOT format,
+# use `dot -Tps file.dot -o output.ps`.
+def graph_to_dot(infile):
+    graph, metadata = process_json(infile)
+    iti = identifier_to_int(graph)
     s = ["digraph prov {"]
     for v, edges in graph.items():
         s.extend(['\t"%s" -> "%s" [label="%s"];' % (
             str(metadata[v].data['cf:type']) + ", " 
                 + str(metadata[v].data['cf:id']) + ', ' 
-                + str(ids_to_ints[v]), 
+                + str(iti[v]), 
             str(metadata[edge.dest].data['cf:type']) + ", " 
                 + str(metadata[edge.dest].data['cf:id']) + ', '
-                + str(ids_to_ints[edge.dest]),
+                + str(iti[edge.dest]),
             metadata[edge.label].data['cf:type'])
             for edge in edges])
     s.append("}")
@@ -107,24 +103,16 @@ def graph_to_dot(graph, metadata):
 # Run gSpan -f provgspan -s 0.1 -o -i. Output will be located in provspan.fp
 # All gSpan input needs to be ints: vertex ids, edge ids, and typ ids are 
 # all mapped to ints and printed out.
-def graph_to_gspan(graph, metadata):
-    # initialize dictionaries mapping vertex/edge ids to ints
-    ids_to_ints = {}
-    v_ctr = 0
-    e_ctr = 0
-    for v, edges in graph.items():
-        ids_to_ints[v] = v_ctr;
-        v_ctr += 1
-        for edge in edges:
-            ids_to_ints[edge.label] = e_ctr;
-            e_ctr += 1
+def graph_to_gspan(infile):
+    graph, metadata = process_json(infile)
+    iti = identifier_to_int(graph)
     s = ["t # 0"]
     vs = []
     es = []
     for v, edges in graph.items():
-        vs.extend(['v %s %s' % (ids_to_ints[v], RECOGNIZED_TYPS.index(metadata[v].typ))])
-        es.extend(['e %s %s %s' % (ids_to_ints[v], ids_to_ints[edge.dest], 0) for edge in edges])
-    return ids_to_ints, "\n".join(s + vs + es)
+        vs.extend(['v %s %s' % (iti[v], RECOGNIZED_TYPS.index(metadata[v].typ))])
+        es.extend(['e %s %s %s' % (iti[v], iti[edge.dest], 0) for edge in edges])
+    return "\n".join(s + vs + es)
 
 def main():
     if len(sys.argv) < 2:
@@ -135,11 +123,9 @@ def main():
     else:
         print("Cannot supply more than one input file.")
         sys.exit(1)
-    graph, metadata = process_json(infile)
-    dots_input = graph_to_dot(graph, metadata)
-    print dots_input
-    #ids_to_ints, gspan_input = graph_to_gspan(graph, metadata)
-    #print(gspan_input)
+    dots_input = graph_to_dot(infile)
+    gspan_input = graph_to_gspan(infile)
+    print(dots_input, gspan_input)
 
 if __name__ == "__main__":
     main()

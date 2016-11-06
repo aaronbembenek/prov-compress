@@ -155,19 +155,19 @@ def compress_relation_metadata(infile):
     # common fields of all relations
     # offset is optional
     relation_keys = {
-            'cf:id':0,
-            'cf:boot_id':1,
-            'cf:machine_id':2,
-            'cf:date':3,
-            'cf:taint':4,
-            'cf:type':5,
-            'prov:label':6,
-            'cf:allowed':7,
-            'cf:sender':8,
-            'cf:receiver':9
+            'cf:id':1,
+            'cf:boot_id':2,
+            'cf:machine_id':3,
+            'cf:date':4,
+            'cf:taint':5,
+            'cf:type':6,
+            'prov:label':7,
+            'cf:allowed':8,
+            'cf:sender':9,
+            'cf:receiver':10
     }
     compressed_relations = []
-    default_relation_data = [None for _ in range(len(relation_keys))]
+    default_relation_data = [None for _ in range(len(relation_keys)+1)]
     for identifier, data in metadata.items():
         # used to identify when the default reference doesn't have
         # this metadata
@@ -175,8 +175,8 @@ def compress_relation_metadata(infile):
         
         if data.typ == "relation":
             # using lists to ensure that the keys and relation data are in the same order
-            relation_data = [None for _ in range(len(relation_keys))]
-
+            relation_data = [None for _ in range(len(relation_keys)+1)]
+            relation_data[0] = iti[identifier]
             for key, datum in data.data.items():
                 val = datum 
                 # this key is not in the default metadata for relations

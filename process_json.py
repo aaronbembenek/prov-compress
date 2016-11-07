@@ -118,30 +118,111 @@ def graph_to_gspan(infile):
         es.extend(['e %s %s %s' % (iti[v], iti[edge.dest], 0) for edge in edges])
     return "\n".join(s + vs + es)
 
-# Returns a string representing the compressed metadata for the graph.
-# Format is  
+# Returns a string representing the compressed node metadata for the graph.
 def compress_node_metadata(infile):
-    graph, metadata = process_json(infile)
-    iti = identifier_to_int(graph)
-    index_of_id = {}
+    '''
+    Example output:
+        The first substring sent is the reference string.
+        Node keys are as defined below (in that order)
+        Data corresponding to keys are separated by a comma
+        Extra keys/data pairs are identified with a $
+        A new relation is identified with a #
+        Undefined identifiers (with no metadata) are identified with a ?
+        If metadata corresponds to the metadata of a previous identifier with the same ID, 
+            it is encoded as int(identifier)@index_of_table(first_identifier)
 
-    v_ctr = 0
-    node_keys_list = []
-    node_keys_set = {}
-    default_node_data = []
-    # id, type, boot_id, machine_id, version, date, taint, and jiffies
-    # are common fields of all nodes
+    None,457525,4,1516773907,734854839,9,2016:11:03T22:07:06.978,[]#
+    2,0,0,0,0,0,0,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 9#
+    4,?#
+    42,?#
+    11,5,0,0,0,1,2016:11:03T22:07:09.119,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 10#
+    35,?#
+    19@4,0,0,0,0,2,0,0,0,0,prov:label$[task] 11#
+    '''
+
+    graph, metadata = process_json(infile)
+    # XXX TODO need to send this over as well
+    iti = identifier_to_int(graph)
+    id_dict = {}
+    node_keys = {
+            'cf:id':1,
+            'cf:type':2,
+            'cf:boot_id':3,
+            'cf:machine_id':4,
+            'cf:version':5,
+            'cf:date':6,
+            'cf:taint':7,
+    }
+
+    compressed_nodes = []
+    default_node_data = [None for _ in range(len(node_keys)+1)]
+    have_set_default = False
+    for identifier, data in metadata.items():
+        if data.typ == "relation":
+            continue
+        if data.data['cf:type'] == None:
+            node_data = [str(iti[identifier]), '?']
+        else:
+            node_data = [None for _ in range(len(node_keys)+1)]
+
+            # encode the data with reference to the default string
+            node_data[0] = iti[identifier]
+            for key, datum in data.data.items():
+                val = datum 
+                # this key is not in the default metadata for nodes
+                if key not in node_keys:
+                    node_data.append(str(key) + '$' + str(val))
+                else:
+                    # set the default node if there have been no nodes compressed so far
+                    if not have_set_default:
+                        default_node_data[node_keys[key]] = val
+                    # delta encode with reference to the default node data
+                    if val == default_node_data[node_keys[key]]:
+                        node_data[node_keys[key]] = 0 
+                    # for now, let's not delta encode the strings (including the time)
+                    elif isinstance(val, str):
+                        node_data[node_keys[key]] = val
+                    else:
+                        assert(isinstance(val, int))
+                        node_data[node_keys[key]] = val - default_node_data[node_keys[key]]
+            node_data = list(map(str,node_data))
+
+            cf_id = data.data['cf:id']
+            # store the index of the first time we see this ID and the corresponding metadata
+            if cf_id not in id_dict:
+                id_dict[cf_id] = (len(compressed_nodes), node_data)
+            else:
+                # this id has had metadata defined for it before. compress with reference to this metadata
+                if cf_id in id_dict:
+                    id_data = id_dict[cf_id][1]
+                    node_data[0] = str(node_data[0]) +'@'+str(id_dict[cf_id][0])
+                    for i, val in enumerate(node_data):
+                        # delta encode with reference to the id node data
+                        if val == id_data[i]:
+                            node_data[i] = '0'
+
+            if not have_set_default:
+                have_set_default = True
+        compressed_nodes.append(node_data)
+    
+    default_node_data = list(map(str, default_node_data))
+    s = [','.join(default_node_data)]
+    for ls in compressed_nodes:
+        s.append(','.join(ls))
+    s = '#'.join(s)
+    return s
 
 # Returns a string representing the compressed relation metadata for the graph.
-#   Relation keys are as defined below (in that order)
-#   Data corresponding to keys are separated by a comma
-#   Extra keys/data pairs are identified with a $
-#   A new relation is identified with a #.
 # Currently, only integer references are compressed (delta-encoded against the default)
 # Strings (including time) are written without compression
 def compress_relation_metadata(infile):
     '''
     Example output:
+        Relation keys are as defined below (in that order)
+        Data corresponding to keys are separated by a comma
+        Extra keys/data pairs are identified with a $
+        A new relation is identified with a #.
+
         Default: 160,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
         0,0,0,None,0,0,0,0,0,0,0#
         2,0,0,None,0,0,read,read,0,0,-44#
@@ -149,9 +230,9 @@ def compress_relation_metadata(infile):
     '''
 
     graph, metadata = process_json(infile)
+    # XXX TODO need to send this over as well
     iti = identifier_to_int(graph)
-    # id, boot_id, machine_id, version, date, taint, jiffies, 
-    # type, label, allowed, sender, receiver are
+    
     # common fields of all relations
     # offset is optional
     relation_keys = {
@@ -168,39 +249,38 @@ def compress_relation_metadata(infile):
     }
     compressed_relations = []
     default_relation_data = [None for _ in range(len(relation_keys)+1)]
+    have_set_default = False
     for identifier, data in metadata.items():
-        # used to identify when the default reference doesn't have
-        # this metadata
-        extra = []
-        
-        if data.typ == "relation":
-            # using lists to ensure that the keys and relation data are in the same order
-            relation_data = [None for _ in range(len(relation_keys)+1)]
-            relation_data[0] = iti[identifier]
-            for key, datum in data.data.items():
-                val = datum 
-                # this key is not in the default metadata for relations
-                if key not in relation_keys:
-                    relation_data.append(key + '$' + val)
+        if data.typ != "relation":
+            continue
+        # using lists to ensure that the keys and relation data are in the same order
+        relation_data = [None for _ in range(len(relation_keys)+1)]
+        relation_data[0] = iti[identifier]
+        for key, datum in data.data.items():
+            val = datum 
+            # this key is not in the default metadata for relations
+            if key not in relation_keys:
+                relation_data.append(str(key) + '$' + str(val))
+            else:
+                # we want to not encode the entire identifier---just map to ints
+                if key == 'cf:sender' or key == 'cf:receiver':
+                    val = iti[datum]
+                # set the default relation if there have been no relations compressed so far
+                if not have_set_default:
+                    default_relation_data[relation_keys[key]] = val
+                # delta encode with reference to the default relation data
+                if val == default_relation_data[relation_keys[key]]:
+                    relation_data[relation_keys[key]] = 0 
+                # for now, let's not delta encode the strings (including the time)
+                elif isinstance(val, str):
+                    relation_data[relation_keys[key]] = val
                 else:
-                    # we want to not encode the entire identifier---just map to ints
-                    if key == 'cf:sender' or key == 'cf:receiver':
-                        val = iti[datum]
-                    # set the default relation if there have been no relations
-                    # compressed so far
-                    if compressed_relations == []:
-                        default_relation_data[relation_keys[key]] = val
-                    # delta encode with reference to the default relation data
-                    if val == default_relation_data[relation_keys[key]]:
-                        relation_data[relation_keys[key]] = 0 
-                    # for now, let's not delta encode the strings (including the time)
-                    elif isinstance(val, str):
-                        relation_data[relation_keys[key]] = val
-                    else:
-                        assert(isinstance(val, int))
-                        relation_data[relation_keys[key]] = val - default_relation_data[relation_keys[key]]
-            relation_data = list(map(str,relation_data))
-            compressed_relations.append(relation_data)
+                    assert(isinstance(val, int))
+                    relation_data[relation_keys[key]] = val - default_relation_data[relation_keys[key]]
+            if not have_set_default:
+                have_set_default = True
+        relation_data = list(map(str,relation_data))
+        compressed_relations.append(relation_data)
     default_relation_data = list(map(str, default_relation_data))
     s = [','.join(default_relation_data)]
     for ls in compressed_relations:
@@ -219,7 +299,8 @@ def main():
         sys.exit(1)
     #dots_input = graph_to_dot(infile)
     #gspan_input = graph_to_gspan(infile)
-    print(compress_relation_metadata(infile))
+    #print(compress_relation_metadata(infile))
+    print(compress_node_metadata(infile))
 
 if __name__ == "__main__":
     main()

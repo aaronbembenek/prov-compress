@@ -10,6 +10,16 @@ import json
 import sys
 from collections import defaultdict
 
+
+DICT_BEGIN = '{'
+DICT_END = '}'
+RELATIVE_NODE = '@'
+VALUES_SEP = ','
+IDENTIFIER_SEP = '#'
+KEY_VAL_SEP = '$'
+UNKNOWN = '?'
+
+
 RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 
 class Edge:
@@ -36,7 +46,7 @@ def json_to_graph_data(infile):
     missing_nodes = set()
     with open(infile) as f:
         for line in f:
-            i = line.find("{")
+            i = line.find(DICT_BEGIN)
             if i == -1:
                 continue
             line = line[i:]
@@ -158,7 +168,7 @@ def compress_node_metadata(graph, metadata, iti):
         if data.typ == "relation":
             continue
         if data.data['cf:type'] == None:
-            node_data = [str(iti[identifier]), '?']
+            node_data = [str(iti[identifier]), UNKNOWN]
         else:
             node_data = [None for _ in range(len(node_keys)+1)]
 
@@ -168,7 +178,7 @@ def compress_node_metadata(graph, metadata, iti):
                 val = datum 
                 # this key is not in the default metadata for nodes
                 if key not in node_keys:
-                    node_data.append(str(key) + '$' + str(val))
+                    node_data.append(str(key) + KEY_VAL_SEP + str(val))
                 else:
                     # set the default node if there have been no nodes compressed so far
                     if not have_set_default:
@@ -195,7 +205,7 @@ def compress_node_metadata(graph, metadata, iti):
                 # this id has had metadata defined for it before. compress with reference to this metadata
                 if cf_id in id_dict:
                     id_data = id_dict[cf_id][1]
-                    node_data[0] = str(node_data[0]) +'@'+str(id_dict[cf_id][0])
+                    node_data[0] = str(node_data[0]) +RELATIVE_NODE+str(id_dict[cf_id][0])
                     for i, val in enumerate(node_data):
                         # delta encode with reference to the id node data
                         if val == id_data[i]:
@@ -206,11 +216,11 @@ def compress_node_metadata(graph, metadata, iti):
         compressed_nodes.append(node_data)
     
     default_node_data = list(map(str, default_node_data))
-    s = [','.join(default_node_data)]
+    s = [VALUES_SEP.join(default_node_data)]
     for ls in compressed_nodes:
         s.append(','.join(ls))
-    s = '#'.join(s)
-    s = '{' + s + '}'
+    s = IDENTIFIER_SEP.join(s)
+    s = DICT_BEGIN + s + DICT_END
     return s
 
 # Returns a string representing the compressed relation metadata for the graph.
@@ -258,7 +268,7 @@ def compress_relation_metadata(graph, metadata, iti):
             val = datum 
             # this key is not in the default metadata for relations
             if key not in relation_keys:
-                relation_data.append(str(key) + '$' + str(val))
+                relation_data.append(str(key) + KEY_VAL_SEP + str(val))
             else:
                 # we want to not encode the entire identifier---just map to ints
                 if key == 'cf:sender' or key == 'cf:receiver':
@@ -284,12 +294,13 @@ def compress_relation_metadata(graph, metadata, iti):
     default_relation_data = list(map(str, default_relation_data))
 
     # join all strings together
-    s = [','.join(default_relation_data)]
+    s = [VALUES_SEP.join(default_relation_data)]
     for ls in compressed_relations:
         s.append(','.join(ls))
-    s = '#'.join(s)
-    s = '{' + s + '}'
+    s = IDENTIFIER_SEP.join(s)
+    s = DICT_BEGIN + s + DICT_END
     return s
+
 
 # Write a dict mapping identifiers to ints, compressed relation metadata, and compressed
 # node metadata to the provide outfile.
@@ -298,7 +309,11 @@ def compress_relation_metadata(graph, metadata, iti):
 def compress_metadata(infile, outfile="compressed.out"):
     graph, metadata = json_to_graph_data(infile)
     iti = identifier_to_int(graph)
-    iti_str = str(iti).replace(' ', '').replace("'",'')
+    s = DICT_BEGIN 
+    for k, v in iti.items():
+        s += k + KEY_VAL_SEP + str(v) + IDENTIFIER_SEP
+    s += DICT_END
+    iti_str = s.replace(' ', '').replace("'",'')
     crm = compress_relation_metadata(graph, metadata, iti) 
     cnm = compress_node_metadata(graph, metadata, iti) 
     with open(outfile,'w') as f:

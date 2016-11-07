@@ -30,7 +30,7 @@ class Metadata:
 
 # Returns an adjacency-list style graph and dictionary of metadata, both
 # indexed by Camflow provenance identifier.
-def process_json(infile):
+def json_to_graph_data(infile):
     metadata = {}
     graph = {}
     missing_nodes = set()
@@ -87,7 +87,7 @@ def identifier_to_int(graph):
 # Returns a string of the graph in DOT format. To view a file in DOT format,
 # use `dot -Tps file.dot -o output.ps`.
 def graph_to_dot(infile):
-    graph, metadata = process_json(infile)
+    graph, metadata = json_to_graph_data(infile)
     iti = identifier_to_int(graph)
     s = ["digraph prov {"]
     for v, edges in graph.items():
@@ -108,7 +108,7 @@ def graph_to_dot(infile):
 # All gSpan input needs to be ints: vertex ids, edge ids, and typ ids are 
 # all mapped to ints and printed out.
 def graph_to_gspan(infile):
-    graph, metadata = process_json(infile)
+    graph, metadata = json_to_graph_data(infile)
     iti = identifier_to_int(graph)
     s = ["t # 0"]
     vs = []
@@ -119,17 +119,18 @@ def graph_to_gspan(infile):
     return "\n".join(s + vs + es)
 
 # Returns a string representing the compressed node metadata for the graph.
-def compress_node_metadata(infile):
+def compress_node_metadata(graph, metadata, iti):
     '''
     Example output:
-        The first substring sent is the reference string.
-        Node keys are as defined below (in that order)
-        Data corresponding to keys are separated by a comma
-        Extra keys/data pairs are identified with a $
-        A new relation is identified with a #
-        Undefined identifiers (with no metadata) are identified with a ?
-        If metadata corresponds to the metadata of a previous identifier with the same ID, 
-            it is encoded as int(identifier)@index_of_table(first_identifier)
+        The first line is not part of the table: it is the default reference string
+        ,-separated input are the data fields for the node keys (defined below)
+        $: marks an extra keys/data pair
+        #: marks a new node
+        ?: marks undefined identifiers (with no metadata)
+        a@b: marks when metadata is reference encoded off of the metadata of a previous identifier with the same ID
+            a is the integer corresponding to the identifier of this node
+            b is the index of the node in the list (i.e. the number of #s) of 
+                the first instance of another identifier with the same ID as (a)
 
     None,457525,4,1516773907,734854839,9,2016:11:03T22:07:06.978,[]#
     2,0,0,0,0,0,0,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 9#
@@ -139,10 +140,6 @@ def compress_node_metadata(infile):
     35,?#
     19@4,0,0,0,0,2,0,0,0,0,prov:label$[task] 11#
     '''
-
-    graph, metadata = process_json(infile)
-    # XXX TODO need to send this over as well
-    iti = identifier_to_int(graph)
     id_dict = {}
     node_keys = {
             'cf:id':1,
@@ -185,8 +182,11 @@ def compress_node_metadata(infile):
                     else:
                         assert(isinstance(val, int))
                         node_data[node_keys[key]] = val - default_node_data[node_keys[key]]
+
             node_data = list(map(str,node_data))
 
+            # see if we can compress node_data further by referencing another node 
+            # with the same camflow ID
             cf_id = data.data['cf:id']
             # store the index of the first time we see this ID and the corresponding metadata
             if cf_id not in id_dict:
@@ -210,29 +210,26 @@ def compress_node_metadata(infile):
     for ls in compressed_nodes:
         s.append(','.join(ls))
     s = '#'.join(s)
+    s = '{' + s + '}'
     return s
 
 # Returns a string representing the compressed relation metadata for the graph.
 # Currently, only integer references are compressed (delta-encoded against the default)
 # Strings (including time) are written without compression
-def compress_relation_metadata(infile):
+def compress_relation_metadata(graph, metadata, iti):
     '''
     Example output:
-        Relation keys are as defined below (in that order)
-        Data corresponding to keys are separated by a comma
-        Extra keys/data pairs are identified with a $
-        A new relation is identified with a #.
+        The first line is not part of the table: it is the default reference string
+        ,-separated input are the data fields for the relation keys (defined below)
+        $: marks an extra keys/data pair
+        #: marks a new relation
 
-        Default: 160,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
+        160,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
         0,0,0,None,0,0,0,0,0,0,0#
         2,0,0,None,0,0,read,read,0,0,-44#
         -21,0,0,None,2016:11:03T22:07:06.978,0,version,version,0,-30,-16
     '''
 
-    graph, metadata = process_json(infile)
-    # XXX TODO need to send this over as well
-    iti = identifier_to_int(graph)
-    
     # common fields of all relations
     # offset is optional
     relation_keys = {
@@ -253,6 +250,7 @@ def compress_relation_metadata(infile):
     for identifier, data in metadata.items():
         if data.typ != "relation":
             continue
+        
         # using lists to ensure that the keys and relation data are in the same order
         relation_data = [None for _ in range(len(relation_keys)+1)]
         relation_data[0] = iti[identifier]
@@ -277,30 +275,51 @@ def compress_relation_metadata(infile):
                 else:
                     assert(isinstance(val, int))
                     relation_data[relation_keys[key]] = val - default_relation_data[relation_keys[key]]
-            if not have_set_default:
-                have_set_default = True
+        if not have_set_default:
+            have_set_default = True
+
+        # everything has to be strings...
         relation_data = list(map(str,relation_data))
         compressed_relations.append(relation_data)
     default_relation_data = list(map(str, default_relation_data))
+
+    # join all strings together
     s = [','.join(default_relation_data)]
     for ls in compressed_relations:
         s.append(','.join(ls))
     s = '#'.join(s)
+    s = '{' + s + '}'
     return s
 
+# Write a dict mapping identifiers to ints, compressed relation metadata, and compressed
+# node metadata to the provide outfile.
+# Currently, only integer references are compressed (delta-encoded against the default)
+# Strings (including time) are written without compression
+def compress_metadata(infile, outfile="compressed.out"):
+    graph, metadata = json_to_graph_data(infile)
+    iti = identifier_to_int(graph)
+    iti_str = str(iti).replace(' ', '').replace("'",'')
+    crm = compress_relation_metadata(graph, metadata, iti) 
+    cnm = compress_node_metadata(graph, metadata, iti) 
+    with open(outfile,'w') as f:
+        f.write(iti_str+crm+cnm)
+
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) == 1:
         print("No input file: defaulting to /tmp/audit.log.")
         infile = "/tmp/audit.log"
     elif len(sys.argv) == 2:
         infile = sys.argv[1]
+    elif len(sys.argv) == 3:
+        infile = sys.argv[1]
+        outfile = sys.argv[2]
     else:
-        print("Cannot supply more than one input file.")
+        print("Usage: ./process_json.py [infile] [outfile]")
         sys.exit(1)
     #dots_input = graph_to_dot(infile)
     #gspan_input = graph_to_gspan(infile)
     #print(compress_relation_metadata(infile))
-    print(compress_node_metadata(infile))
+    compress_metadata(infile)
 
 if __name__ == "__main__":
     main()

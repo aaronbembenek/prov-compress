@@ -81,16 +81,16 @@ def json_to_graph_data(infile):
     return graph, metadata
 
 # Returns a dictionary mapping all identifier strings for vertices
-# and edges in the graph to unique integers
+# and edges in the graph to unique integers + n/r for node/relation
 def identifier_to_int(graph):
     iti = {}
     v_ctr = 0
     e_ctr = 0
     for v, edges in graph.items():
-        iti[v] = v_ctr
+        iti[v] = str(v_ctr) + 'n'
         v_ctr += 1
         for edge in edges:
-            iti[edge.label] = e_ctr
+            iti[edge.label] = str(e_ctr) + 'r'
             e_ctr += 1
     return iti 
 
@@ -143,12 +143,12 @@ def compress_node_metadata(graph, metadata, iti):
                 the first instance of another identifier with the same ID as (a)
 
     None,457525,4,1516773907,734854839,9,2016:11:03T22:07:06.978,[]#
-    2,0,0,0,0,0,0,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 9#
-    4,?#
-    42,?#
-    11,5,0,0,0,1,2016:11:03T22:07:09.119,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 10#
-    35,?#
-    19@4,0,0,0,0,2,0,0,0,0,prov:label$[task] 11#
+    2n,0,0,0,0,0,0,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 9#
+    4n,?#
+    42n,?#
+    11n,5,0,0,0,1,2016:11:03T22:07:09.119,0,cf:gid$1000,cf:uid$1000,prov:label$[task] 10#
+    35n,?#
+    19n@4n,0,0,0,0,2,0,0,0,0,prov:label$[task] 11#
     '''
     id_dict = {}
     node_keys = {
@@ -200,7 +200,7 @@ def compress_node_metadata(graph, metadata, iti):
             cf_id = data.data['cf:id']
             # store the index of the first time we see this ID and the corresponding metadata
             if cf_id not in id_dict:
-                id_dict[cf_id] = (len(compressed_nodes), node_data)
+                id_dict[cf_id] = (iti[identifier], node_data)
             else:
                 # this id has had metadata defined for it before. compress with reference to this metadata
                 if cf_id in id_dict:
@@ -208,6 +208,7 @@ def compress_node_metadata(graph, metadata, iti):
                     node_data[0] = str(node_data[0]) +RELATIVE_NODE+str(id_dict[cf_id][0])
                     for i, val in enumerate(node_data):
                         # delta encode with reference to the id node data
+                        # for right now, we just see if the data was equivalent
                         if val == id_data[i]:
                             node_data[i] = '0'
 
@@ -234,10 +235,10 @@ def compress_relation_metadata(graph, metadata, iti):
         $: marks an extra keys/data pair
         #: marks a new relation
 
-        160,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
-        0,0,0,None,0,0,0,0,0,0,0#
-        2,0,0,None,0,0,read,read,0,0,-44#
-        -21,0,0,None,2016:11:03T22:07:06.978,0,version,version,0,-30,-16
+        160r,1516773907,734854839,None,2016:11:03T22:07:09.119,[],open,open,true,36,45#
+        0r,0,0,None,0,0,0,0,0,0,0#
+        2r,0,0,None,0,0,read,read,0,0,-44#
+        -21r,0,0,None,2016:11:03T22:07:06.978,0,version,version,0,-30,-16
     '''
 
     # common fields of all relations
@@ -314,10 +315,10 @@ def compress_metadata(infile, outfile="compressed.out"):
         s += k + KEY_VAL_SEP + str(v) + IDENTIFIER_SEP
     s += DICT_END
     iti_str = s.replace(' ', '').replace("'",'')
-    crm = compress_relation_metadata(graph, metadata, iti) 
     cnm = compress_node_metadata(graph, metadata, iti) 
+    crm = compress_relation_metadata(graph, metadata, iti) 
     with open(outfile,'w') as f:
-        f.write(iti_str+crm+cnm)
+        f.write(iti_str+cnm+crm)
 
 def main():
     if len(sys.argv) == 1:

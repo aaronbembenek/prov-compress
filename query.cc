@@ -77,8 +77,9 @@ string remove_char(string str, char ch) {
     return str;
 }
 
-string decode_from_default(vector<string>& data) {
-    string s = "\"" + "identifier" + "\": {";
+string decode_from_default(string& identifier, vector<string>& data) {
+    string s = "\"" + identifier;
+    s += "\": {";
     auto default_data = (data[0].find('n') != string::npos) ? default_node_data : default_relation_data;
     auto keys = (data[0].find('n') != string::npos) ? node_keys : relation_keys;
     for (unsigned i = 1; i < default_data.size(); ++i) {
@@ -103,7 +104,7 @@ string decode_from_default(vector<string>& data) {
     }
     // add the rest of the keys
     for (auto i = keys.size(); i < data.size(); ++i) {
-        auto pos = data[0].find(KEY_VAL_SEP);
+        auto pos = data[i].find(KEY_VAL_SEP);
         auto key = data[i].substr(0, pos);
         auto val = data[i].substr(pos+1);
         s += "\"" + key + "\": " + val + ",";
@@ -133,11 +134,11 @@ string get_metadata(string identifier) {
                 } catch (const invalid_argument&) {continue;}
             }
         }
-        return decode_from_default(data);
+        return decode_from_default(identifier, data);
     } else {
         // we are dealing with a relation
         data = relations_data[index];
-        return decode_from_default(data);
+        return decode_from_default(identifier, data);
     }
     assert(0);
     return "";
@@ -185,6 +186,6 @@ int main(int argc, char *argv[]) {
         relations_data[data[0]] = data;
     }
 
-    get_metadata("cf:BAAAAAAAAAAwAwcAAAAAABMiaFq3/swrAQAAAAAAAAA=");
+    cout << get_metadata("cf:BAAAAAAAAAAwAwcAAAAAABMiaFq3/swrAQAAAAAAAAA=") << endl;
     return 0;
 }

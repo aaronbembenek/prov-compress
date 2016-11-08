@@ -13,12 +13,11 @@
 #define VALUES_SEP ','
 #define IDENTIFIER_SEP '#'
 #define KEY_VAL_SEP '$'
-#define UNKNOWN '?'
-
+#define UNKNOWN "?"
 
 /*
     SUPPORTED QUERIES:
-    direct_ancestor(identifier--the thing in red) => return identifier
+    direct_ancestor(identifier) => return identifier
     all_ancestors(identifier) => return list of identifiers
     all_descendants(identifier) => return list of identifiers
     all_paths(source, sink) => return list of list of identifiers
@@ -50,7 +49,8 @@ map<string, int> relation_keys = {
     {"cf:sender", 9},
     {"cf:receiver", 10}
 };
-map<string, string> iti_dict;
+map<string, string> id_to_int_dict;
+map<string, string> int_to_id_dict;
 map<string, vector<string>> nodes_data;
 map<string, vector<string>> relations_data;
 vector<string> default_node_data;
@@ -82,16 +82,28 @@ string decode_from_default(string& identifier, vector<string>& data) {
     s += "\": {";
     auto default_data = (data[0].find('n') != string::npos) ? default_node_data : default_relation_data;
     auto keys = (data[0].find('n') != string::npos) ? node_keys : relation_keys;
+    
+    // deal with node that has no metadata
+    if (data[1] == UNKNOWN) {
+        return s += "?}";
+    }
     for (unsigned i = 1; i < default_data.size(); ++i) {
+        size_t pos;
         try {
-            int val = stoi(data[i]);
+            int val = stoi(data[i], &pos, 10);
+            if (data[i][pos] != '\0') {
+                continue;
+            }
             // they were equal
             if (!val) {
                 data[i] = default_data[i];
             } else {
                 // this looks like an int! should be delta encoded off the default
                 // we have to ensure that the default val was an int too
-                int default_val = stoi(default_data[i]);
+                int default_val = stoi(default_data[i], &pos, 10);
+                if (default_data[i][pos] != '\0') {
+                    continue;
+                }
                 data[i] = to_string(default_val + val);
             }
         } catch (const invalid_argument&) {
@@ -99,11 +111,17 @@ string decode_from_default(string& identifier, vector<string>& data) {
             continue; 
         }
     }
+
     for (auto i = keys.begin(); i != keys.end(); ++i) {
-        s += "\"" + (*i).first + "\": " + data[(*i).second] + ",";
+        if ((*i).first == "cf:sender" || (*i).first == "cf:receiver") {
+            s += "\"" + (*i).first + "\": " + int_to_id_dict[data[(*i).second]] + ",";
+
+        } else {
+            s += "\"" + (*i).first + "\": " + data[(*i).second] + ",";
+        }
     }
     // add the rest of the keys
-    for (auto i = keys.size(); i < data.size(); ++i) {
+    for (auto i = keys.size()+1; i < data.size(); ++i) {
         auto pos = data[i].find(KEY_VAL_SEP);
         auto key = data[i].substr(0, pos);
         auto val = data[i].substr(pos+1);
@@ -114,7 +132,7 @@ string decode_from_default(string& identifier, vector<string>& data) {
 }
 
 string get_metadata(string identifier) {
-    auto index = iti_dict[identifier];
+    auto index = id_to_int_dict[identifier];
     vector<string> data;
 
     if (index.find('n') != string::npos) {
@@ -172,7 +190,8 @@ int main(int argc, char *argv[]) {
   
     for (auto i = iti_vector.begin(); i != iti_vector.end(); ++i) {
         size_t pos = (*i).find(KEY_VAL_SEP);
-        iti_dict[(*i).substr(0,pos)] = (*i).substr(pos+1);
+        id_to_int_dict[(*i).substr(0,pos)] = (*i).substr(pos+1);
+        int_to_id_dict[(*i).substr(pos+1)] = (*i).substr(0,pos);
     }
     default_node_data = split(nodes_vector[0], VALUES_SEP);
     for (auto i = nodes_vector.begin()+1; i != nodes_vector.end(); ++i) {
@@ -186,6 +205,9 @@ int main(int argc, char *argv[]) {
         relations_data[data[0]] = data;
     }
 
-    cout << get_metadata("cf:BAAAAAAAAAAwAwcAAAAAABMiaFq3/swrAQAAAAAAAAA=") << endl;
+    for (auto i = id_to_int_dict.begin(); i != id_to_int_dict.end(); ++i) {
+        cout << get_metadata((*i).first) << endl;
+        //get_metadata((*i).first);
+    }
     return 0;
 }

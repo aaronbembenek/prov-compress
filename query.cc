@@ -58,7 +58,7 @@ vector<string> default_relation_data;
 
 void print_dict(map<string, vector<string>>& dict) {
     for (auto i = dict.begin(); i != dict.end(); ++i) {
-        cout << (*i).first << ": " << (*i).second.size() << endl;
+        cout << i->first << ": " << i->second.size() << endl;
     }
 }
 
@@ -113,11 +113,11 @@ string decode_from_default(string& identifier, vector<string>& data) {
     }
 
     for (auto i = keys.begin(); i != keys.end(); ++i) {
-        if ((*i).first == "cf:sender" || (*i).first == "cf:receiver") {
-            s += "\"" + (*i).first + "\": " + int_to_id_dict[data[(*i).second]] + ",";
+        if (i->first == "cf:sender" || i->first == "cf:receiver") {
+            s += "\"" + i->first + "\": " + int_to_id_dict[data[i->second]] + ",";
 
         } else {
-            s += "\"" + (*i).first + "\": " + data[(*i).second] + ",";
+            s += "\"" + i->first + "\": " + data[i->second] + ",";
         }
     }
     // add the rest of the keys
@@ -189,9 +189,9 @@ int main(int argc, char *argv[]) {
     auto relations_vector = split(remove_char(data[2], DICT_BEGIN), IDENTIFIER_SEP);
   
     for (auto i = iti_vector.begin(); i != iti_vector.end(); ++i) {
-        size_t pos = (*i).find(KEY_VAL_SEP);
-        id_to_int_dict[(*i).substr(0,pos)] = (*i).substr(pos+1);
-        int_to_id_dict[(*i).substr(pos+1)] = (*i).substr(0,pos);
+        size_t pos = i->find(KEY_VAL_SEP);
+        id_to_int_dict[i->substr(0,pos)] = i->substr(pos+1);
+        int_to_id_dict[i->substr(pos+1)] = i->substr(0,pos);
     }
     default_node_data = split(nodes_vector[0], VALUES_SEP);
     for (auto i = nodes_vector.begin()+1; i != nodes_vector.end(); ++i) {
@@ -206,8 +206,8 @@ int main(int argc, char *argv[]) {
     }
 
     for (auto i = id_to_int_dict.begin(); i != id_to_int_dict.end(); ++i) {
-        cout << get_metadata((*i).first) << endl;
-        //get_metadata((*i).first);
+        cout << get_metadata(i->first) << endl;
+        //get_metadata(i->first);
     }
     return 0;
 }

@@ -12,11 +12,13 @@ VALUES_SEP = ','
 IDENTIFIER_SEP = '#'
 KEY_VAL_SEP = '$'
 UNKNOWN = '?'
+
 RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 
 class Edge:
     def __init__(self, dest, label):
         self.dest = dest
+        # XXX do we want to use common strings for this?
         self.label = label
 
     def __repr__(self):

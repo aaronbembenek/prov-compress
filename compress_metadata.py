@@ -8,21 +8,35 @@ from process_json import (
     IDENTIFIER_SEP,
     KEY_VAL_SEP,
     UNKNOWN,
-    RECOGNIZED_TYPS
+    RECOGNIZED_TYPS,
+    Metadata
 )
 from collections import defaultdict
 
 '''
-TODO:
-    - Construct common strings dictionary 
-    - Do reference encoding/string-id replacement within JSON dictionary
-    - Convert JSON to string
+TODO
     - Convert JSON to BSON
     - Convert JSON to UBJSON
+    - Time compression?
 '''
 
 class Encoder():
-    common_strings = {
+    DEFAULT_NODE_KEY = 'dnode'
+    DEFAULT_RELATION_KEY = 'dedge'
+    node_types = {
+        0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 
+        0x00000020, 0x00000040, 0x00000080, 0x00000100, 0x00000200, 
+        0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 
+        0x00008000, 0x00010000, 0x00020000, 0x00040000, 0x00080000, 
+        0x00100000, 0x00200000,
+    }    
+    typ_strings = {
+        'prefix', 'activity', 'relation', 'entity', 'agent', 'message', 
+        'used', 'wasGeneratedBy', 'wasInformedBy', 'wasDerivedFrom',
+        'unknown'
+    }
+    key_strings = {
+        DEFAULT_NODE_KEY, DEFAULT_RELATION_KEY,
         # cf: keys
         'cf:id', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:taint', 'cf:type', 'cf:version', 
         'cf:allowed', 'cf:sender', 'cf:receiver', 'cf:jiffies', 'cf:offset', 'cf:hasParent', 
@@ -31,13 +45,18 @@ class Encoder():
         # prov: keys
         'prov:label', 'prov:entity', 'prov:activity', 'prov:informant', 'prov:informed', 
         'prov:usedEntity', 'prov:generatedEntity', 'prov:type', 
+
+    }
+    # (prov:label is the key, and have a value following)
+    prov_label_strings = {
+        '[address]', '[path]', '[TODO]', '[task]', '[unknown]', '[block special]', '[char special]', 
+        '[directory]', '[fifo]', '[link]', '[file]', '[socket]', 
+    }
+    val_strings = {
         # Booleans
         'false', 'true',
-        # Lables
-        'address', 'path', 'TODO', 'task', 'unknown', 'block special', 'char special', 
-        'directory', 'fifo', 'link', 'file', 'socket', 
         # Edge labels
-        'read', 'write', 'create', 'pass', 'change', 'mmap_write', 'attach', 'associate', 
+        'unknown', 'read', 'write', 'create', 'pass', 'change', 'mmap_write', 'attach', 'associate', 
         'bind', 'connect', 'listen', 'accept', 'open', 'parent', 'version', 'link', 
         'named', 'ifc', 'exec', 'clone', 'version', 'search', 'mmap_read', 'mmap_exec', 
         'send', 'receive', 'perm_read', 'perm_write', 'perm_exec',
@@ -46,27 +65,106 @@ class Encoder():
         'char', 'block', 'fifo', 'socket', 'msg', 'shm', 'sock', 'address', 'sb', 'file_name', 
         'ifc', 'disc_entity', 'disc_activity', 'disc_agent', 'disc_node', 'packet', 'mmaped_file',
     }
+
     def __init__(self, graph, metadata, iti):
         self.graph = graph
         self.metadata = metadata 
         self.iti = iti
-        self.common_strings_dict = {elt:i for (i, elt) in enumerate(Encoder.common_strings)}
+        # TODO change str(i) to some number of bits
+        self.keys_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.key_strings)}
+        self.vals_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.val_strings)}
+        self.labels_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.prov_label_strings)}
+        self.typs_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.typ_strings)}
+        self.node_types_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.node_types)}
+
+        with open("prov_data_dicts.txt", 'w') as f:
+            f.write(str(self.keys_dict))
+            f.write(str(self.vals_dict))
+            f.write(str(self.labels_dict))
+            f.write(str(self.typs_dict))
+            f.write(str(self.node_types_dict))
 
     def encode_json(self):
         ''' 
         Encodes the JSON in place:
             - reference encodes metadata with corresponding defaults
             - replaces common strings with their identifiers
-            - compress time format (also as reference encoded?)
+            - replaces identifiers with their mapped_to number/int ID
         return: dictionary in JSON format
         '''
 
-    def compress_node_metadata(self):
-        raise NotImplementedError()
+        # Do one pass to replace common strings and the identifiers
+        # since we can't modify the metadata in place during the loop, make a copy
+        my_metadata = {}
+        for identifier, metadata in self.metadata.items():
+            new_metadata = {}
+            for key, val in metadata.data.items():
+                new_val = val
+                new_key = key
+                # replace the key
+                if key in self.keys_dict:
+                    new_key = self.keys_dict[key]
+                # replace any labels
+                if key == 'prov:label':
+                    for label in self.labels_dict:
+                        new_val = new_val.replace(label, self.labels_dict[label])
+                # replace identifiers
+                elif key == 'cf:sender' or key == 'cf:receiver':
+                    new_val = self.iti[val]
+                elif key == 'cf:type' and metadata.typ != 'relation' and val != None:
+                    new_val = self.node_types_dict[val]
+                # replace any other strings in the value (must be full match)
+                if isinstance(val, str) and val in self.vals_dict:
+                    new_val = self.vals_dict[val]
+                # set metadata.data appropriately
+                new_metadata[new_key] = new_val
+           
+            # replace identifier with ID key, metadata with the encoded metadata
+            my_metadata[self.iti[identifier]] = Metadata(self.typs_dict[metadata.typ], new_metadata)
+        self.metadata = my_metadata
 
-    def compress_edge_metadata(self):
-        raise NotImplementedError()
-    
+        # Do another pass to encode with reference to default metadata
+        default_node_data = {}
+        default_relation_data = {}
+        id_dict = {}
+        
+        for intid, metadata in self.metadata.items():
+            default_data = default_node_data
+            # since we can't modify the metadata in place during the loop, make a copy
+            if metadata.typ == self.typs_dict['relation']:
+                default_data = default_relation_data
+            else:
+                cf_id = metadata.data[self.keys_dict['cf:id']]
+                if cf_id in id_dict and cf_id != None:
+                    # this id has had self.metadata defined for it before.
+                    # compress with reference to this self.metadata
+                    # Note that node metadata requires unpacking the relative metadata, then
+                    # calculate the node's data in reference to that relative
+                    default_data = id_dict[cf_id][1]
+                else: 
+                    default_data = default_node_data
+                    # store the original metadata of the first time we see a camflow ID
+                    id_dict[cf_id] = (intid, metadata.data)
+            for encoded_key, val in metadata.data.items():
+                # set the default node if there have been no nodes 
+                # with this key compressed so far
+                if encoded_key not in default_data:
+                    assert(encoded_key != RELATIVE_NODE)
+                    default_data[encoded_key] = val
+                # delta encode with reference to the default
+                if val == default_data[encoded_key]:
+                    metadata.data[encoded_key] = 0 
+            
+            # add a marker in the metadata that this is encoded relative 
+            # to another node with the same cf_id
+            if metadata.typ != self.typs_dict['relation'] and cf_id in id_dict and cf_id != None:
+                metadata.data[RELATIVE_NODE] = cf_id 
+        
+        # add defaults to the metadata dictionary under "dnode" and "dedge" keys
+        self.metadata[Encoder.DEFAULT_NODE_KEY] = default_node_data
+        self.metadata[Encoder.DEFAULT_RELATION_KEY] = default_relation_data
+        return self.metadata
+
     def compress_metadata(self):
         raise NotImplementedError()
 

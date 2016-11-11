@@ -12,35 +12,54 @@ from process_json import (
 )
 from collections import defaultdict
 
-class Encoder():
-    node_keys = {
-            'cf:id':1,
-            'cf:type':2,
-            'cf:boot_id':3,
-            'cf:machine_id':4,
-            'cf:version':5,
-            'cf:date':6,
-            'cf:taint':7,
-    }
-    # common fields of all relations
-    # offset is optional
-    relation_keys = {
-            'cf:id':1,
-            'cf:boot_id':2,
-            'cf:machine_id':3,
-            'cf:date':4,
-            'cf:taint':5,
-            'cf:type':6,
-            'prov:label':7,
-            'cf:allowed':8,
-            'cf:sender':9,
-            'cf:receiver':10
-    }
+'''
+TODO:
+    - Construct common strings dictionary 
+    - Do reference encoding/string-id replacement within JSON dictionary
+    - Convert JSON to string
+    - Convert JSON to BSON
+    - Convert JSON to UBJSON
+'''
 
+class Encoder():
+    common_strings = {
+        # cf: keys
+        'cf:id', 'cf:boot_id', 'cf:machine_id', 'cf:date', 'cf:taint', 'cf:type', 'cf:version', 
+        'cf:allowed', 'cf:sender', 'cf:receiver', 'cf:jiffies', 'cf:offset', 'cf:hasParent', 
+        'cf:uid', 'cf:uuid', 'cf:gid', 'cf:pid', 'cf:vpid', 'cf:mode', 'cf:sock_type', 'cf:family', 
+        'cf:seq', 'cf:protocol', 'cf:message', 'cf:address', 'cf:pathname', 
+        # prov: keys
+        'prov:label', 'prov:entity', 'prov:activity', 'prov:informant', 'prov:informed', 
+        'prov:usedEntity', 'prov:generatedEntity', 'prov:type', 
+        # Booleans
+        'false', 'true',
+        # Lables
+        'address', 'path', 'TODO', 'task', 'unknown', 'block special', 'char special', 
+        'directory', 'fifo', 'link', 'file', 'socket', 
+        # Edge labels
+        'read', 'write', 'create', 'pass', 'change', 'mmap_write', 'attach', 'associate', 
+        'bind', 'connect', 'listen', 'accept', 'open', 'parent', 'version', 'link', 
+        'named', 'ifc', 'exec', 'clone', 'version', 'search', 'mmap_read', 'mmap_exec', 
+        'send', 'receive', 'perm_read', 'perm_write', 'perm_exec',
+        # Node types
+        'string', 'relation', 'task', 'inode_unknown', 'link', 'file', 'directory', 
+        'char', 'block', 'fifo', 'socket', 'msg', 'shm', 'sock', 'address', 'sb', 'file_name', 
+        'ifc', 'disc_entity', 'disc_activity', 'disc_agent', 'disc_node', 'packet', 'mmaped_file',
+    }
     def __init__(self, graph, metadata, iti):
         self.graph = graph
         self.metadata = metadata 
         self.iti = iti
+        self.common_strings_dict = {elt:i for (i, elt) in enumerate(Encoder.common_strings)}
+
+    def encode_json(self):
+        ''' 
+        Encodes the JSON in place:
+            - reference encodes metadata with corresponding defaults
+            - replaces common strings with their identifiers
+            - compress time format (also as reference encoded?)
+        return: dictionary in JSON format
+        '''
 
     def compress_node_metadata(self):
         raise NotImplementedError()
@@ -75,7 +94,16 @@ class StringEncoder(Encoder):
         35n,?#
         19n@4n,0,0,0,0,2,0,0,0,0,prov:label$[task] 11#
         '''
-        node_keys = Encoder.node_keys
+        node_keys = {
+                'cf:id':1,
+                'cf:type':2,
+                'cf:boot_id':3,
+                'cf:machine_id':4,
+                'cf:version':5,
+                'cf:date':6,
+                'cf:taint':7,
+        }
+
         id_dict = {}
         compressed_nodes = []
         default_node_data = [None for _ in range(len(node_keys)+1)]
@@ -156,7 +184,20 @@ class StringEncoder(Encoder):
             2r,0,0,None,0,0,read,read,0,0,-44#
             -21r,0,0,None,2016:11:03T22:07:06.978,0,version,version,0,-30,-16
         '''
-        relation_keys = Encoder.node_keys
+        # common fields of all relations
+        # offset is optional
+        relation_keys = {
+            'cf:id':1,
+            'cf:boot_id':2,
+            'cf:machine_id':3,
+            'cf:date':4,
+            'cf:taint':5,
+            'cf:type':6,
+            'prov:label':7,
+            'cf:allowed':8,
+            'cf:sender':9,
+            'cf:receiver':10
+        }
         compressed_relations = []
         default_relation_data = [None for _ in range(len(relation_keys)+1)]
         have_set_default = False

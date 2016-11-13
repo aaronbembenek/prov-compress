@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import process_json as pj
-from compress_metadata import Encoder, StringEncoder
+from compress_metadata import Encoder
 import sys
 
 def main():
@@ -19,9 +19,8 @@ def main():
     graph, metadata = pj.json_to_graph_data(infile)
     iti = pj.identifier_to_int(graph)
 
-    se = StringEncoder(graph, metadata, iti)
-    #print(se.compress_metadata())
-    print(se.encode_json())
+    e = Encoder(graph, metadata, iti)
+    print(e.compress_metadata())
     #dots_input = pj.graph_to_dot(infile)
     #gspan_input = pj.graph_to_gspan(infile)
 

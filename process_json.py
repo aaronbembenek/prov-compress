@@ -33,11 +33,16 @@ class Metadata:
     def __repr__(self):
         return '(typ = "%s", data = "%s")' % (self.typ, self.data)
 
+
+def bitstr_to_bytes(s):
+    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
+
 def get_bits(int_data, num_bits):
     '''
     Converts an integer into a integer represented in num_bits bits.
     Returns a sequence of bytes
     '''
+    assert(int_data == 0 or math.ceil(math.log(int_data, 2)) <= num_bits)
     format_str = '{0:0%db}' % num_bits
     return (format_str.format(int_data))
 

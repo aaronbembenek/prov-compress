@@ -22,8 +22,8 @@ def main():
     se = StringEncoder(graph, metadata, iti)
     #print(se.compress_metadata())
     print(se.encode_json())
-    #dots_input = graph_to_dot(infile)
-    #gspan_input = graph_to_gspan(infile)
+    #dots_input = pj.graph_to_dot(infile)
+    #gspan_input = pj.graph_to_gspan(infile)
 
 if __name__ == "__main__":
     main()

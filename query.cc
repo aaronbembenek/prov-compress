@@ -1,80 +1,28 @@
-#include<iostream>
-#include<fstream>
-#include<string>
-#include<vector>
-#include<map>
-#include<sstream>
-#include<algorithm>
-#include<cassert>
+#include "query.hh"
 
-#define DICT_BEGIN '{'
-#define DICT_END '}'
-#define RELATIVE_NODE '@'
-#define VALUES_SEP ','
-#define IDENTIFIER_SEP '#'
-#define KEY_VAL_SEP '$'
-#define UNKNOWN "?"
-
-/*
-    SUPPORTED QUERIES:
-    direct_ancestor(identifier) => return identifier
-    all_ancestors(identifier) => return list of identifiers
-    all_descendants(identifier) => return list of identifiers
-    all_paths(source, sink) => return list of list of identifiers
-    friends(identifier) => return list of identifiers (is this a useful query to support?)
-    metadata(identifier) => return (JSON output?) of identifier
- */
-
-using namespace std;
-
-map<string, int> node_keys = {
-    {"cf:id", 1},
-    {"cf:type", 2},
-    {"cf:boot_id", 3},
-    {"cf:machine_id", 4},
-    {"cf:version", 5},
-    {"cf:date", 6},
-    {"cf:taint", 7}
-};
-
-map<string, int> relation_keys = {
-    {"cf:id", 1},
-    {"cf:boot_id", 2},
-    {"cf:machine_id", 3},
-    {"cf:date", 4},
-    {"cf:taint", 5},
-    {"cf:type", 6},
-    {"prov:label", 7},
-    {"cf:allowed", 8},
-    {"cf:sender", 9},
-    {"cf:receiver", 10}
-};
-map<string, string> id_to_int_dict;
-map<string, string> int_to_id_dict;
-map<string, vector<string>> nodes_data;
-map<string, vector<string>> relations_data;
-vector<string> default_node_data;
-vector<string> default_relation_data;
-
-void print_dict(map<string, vector<string>>& dict) {
-    for (auto i = dict.begin(); i != dict.end(); ++i) {
-        cout << i->first << ": " << i->second.size() << endl;
-    }
-}
-
-vector<string> split(string str, char delim) {
+void construct_prov_dicts() {
+    ifstream infile;
+    string buffer;
     vector<string> data;
-    stringstream ss(str);
-    string substring;
-    while (getline(ss, substring, delim)) {
-        data.push_back(substring);
-    }
-    return data;
-}
 
-string remove_char(string str, char ch) {
-    str.erase(remove(str.begin(), str.end(), ch), str.end());
-    return str;
+    infile.open("PROV_DICTS_FILE.txt", ios::in);
+    assert(infile.is_open());
+    getline(infile, buffer);
+    infile.close();
+
+    data = split(buffer, DICT_END);
+    assert(data.size() == 5);
+    
+    for (auto i = data.begin(); i != data.end(); ++i) {
+        remove_char(*i, DICT_BEGIN);
+    }
+    vector<string, string>node_types_dict;
+    vector<string, string>typ_dict;
+    vector<string, string>key_dict;
+    vector<string, string>prov_label_dict;
+    vector<string, string>val_dict;
+    map<string, string> id_to_intid_dict;
+    map<string, string> intid_to_id_dict;
 }
 
 string decode_from_default(string& identifier, vector<string>& data) {
@@ -180,9 +128,10 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     getline(infile, buffer);
+    infile.close();
+    
     data = split(buffer, DICT_END);
     assert(data.size() == 3);
-    infile.close();
 
     auto iti_vector = split(remove_char(data[0], DICT_BEGIN), IDENTIFIER_SEP);
     auto nodes_vector = split(remove_char(data[1], DICT_BEGIN), IDENTIFIER_SEP);
@@ -211,3 +160,35 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
+
+/*
+ * HELPER FUNCTIONS
+ */
+void print_dict(map<string, vector<string>>& dict) {
+    for (auto i = dict.begin(); i != dict.end(); ++i) {
+        cout << i->first << ": " << i->second.size() << endl;
+    }
+}
+
+vector<string> split(string str, char delim) {
+    vector<string> data;
+    stringstream ss(str);
+    string substring;
+    while (getline(ss, substring, delim)) {
+        data.push_back(substring);
+    }
+    return data;
+}
+
+bool str_to_int(string s, int& i) {
+    try {
+        int pos;
+        i = stoi(s, &pos, 10);
+        // check whether the entire string was an integer
+        return (s[pos] == '\0');
+    } catch (const invalid_argument&) {
+        i = -1;
+        return false;
+    }
+}
+

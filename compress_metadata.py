@@ -1,5 +1,6 @@
 import json
 import sys
+import math
 from process_json import (
     DICT_BEGIN,
     DICT_END,
@@ -9,7 +10,8 @@ from process_json import (
     KEY_VAL_SEP,
     UNKNOWN,
     RECOGNIZED_TYPS,
-    Metadata
+    Metadata,
+    get_bits
 )
 from collections import defaultdict
 
@@ -17,12 +19,13 @@ from collections import defaultdict
 TODO
     - Convert JSON to BSON
     - Convert JSON to UBJSON
+    - Compute common strings
     - Time compression?
 '''
 
 class Encoder():
-    DEFAULT_NODE_KEY = 'dnode'
-    DEFAULT_RELATION_KEY = 'dedge'
+    DEFAULT_NODE_KEY = '-1'
+    DEFAULT_RELATION_KEY = '-2'
     node_types = {
         0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 
         0x00000020, 0x00000040, 0x00000080, 0x00000100, 0x00000200, 
@@ -30,11 +33,13 @@ class Encoder():
         0x00008000, 0x00010000, 0x00020000, 0x00040000, 0x00080000, 
         0x00100000, 0x00200000,
     }    
+    node_type_bits = math.ceil(math.log(len(node_types), 2))
     typ_strings = {
         'prefix', 'activity', 'relation', 'entity', 'agent', 'message', 
         'used', 'wasGeneratedBy', 'wasInformedBy', 'wasDerivedFrom',
         'unknown'
     }
+    typ_bits = math.ceil(math.log(len(typ_strings), 2))
     key_strings = {
         DEFAULT_NODE_KEY, DEFAULT_RELATION_KEY,
         # cf: keys
@@ -47,11 +52,13 @@ class Encoder():
         'prov:usedEntity', 'prov:generatedEntity', 'prov:type', 
 
     }
+    key_bits = math.ceil(math.log(len(key_strings), 2))
     # (prov:label is the key, and have a value following)
     prov_label_strings = {
         '[address]', '[path]', '[TODO]', '[task]', '[unknown]', '[block special]', '[char special]', 
         '[directory]', '[fifo]', '[link]', '[file]', '[socket]', 
     }
+    label_bits = math.ceil(math.log(len(prov_label_strings), 2))
     val_strings = {
         # Booleans
         'false', 'true',
@@ -65,17 +72,19 @@ class Encoder():
         'char', 'block', 'fifo', 'socket', 'msg', 'shm', 'sock', 'address', 'sb', 'file_name', 
         'ifc', 'disc_entity', 'disc_activity', 'disc_agent', 'disc_node', 'packet', 'mmaped_file',
     }
+    val_bits = math.ceil(math.log(len(val_strings), 2))
 
     def __init__(self, graph, metadata, iti):
         self.graph = graph
         self.metadata = metadata 
         self.iti = iti
-        # TODO change str(i) to some number of bits
-        self.keys_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.key_strings)}
-        self.vals_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.val_strings)}
-        self.labels_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.prov_label_strings)}
-        self.typs_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.typ_strings)}
-        self.node_types_dict = {elt:str(i) for (i, elt) in enumerate(Encoder.node_types)}
+        self.keys_dict = {elt:get_bits(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
+        self.vals_dict = {elt:get_bits(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
+        self.labels_dict = {elt:get_bits(i, Encoder.label_bits) 
+                for (i, elt) in enumerate(Encoder.prov_label_strings)}
+        self.typs_dict = {elt:get_bits(i, Encoder.typ_bits) for (i, elt) in enumerate(Encoder.typ_strings)}
+        self.node_types_dict = {elt:get_bits(i, Encoder.node_type_bits) 
+                for (i, elt) in enumerate(Encoder.node_types)}
 
         with open("prov_data_dicts.txt", 'w') as f:
             f.write(str(self.keys_dict))
@@ -167,6 +176,14 @@ class Encoder():
 
     def compress_metadata(self):
         raise NotImplementedError()
+
+    def json_to_str(self):
+        s = ''
+        for intid, metadata in self.metadata:
+            s.append(intid)
+            metadata.typ
+            for key, val in metadata.data.items():
+                s += key + val
 
 # translates JSON into a string with delimiters
 class StringEncoder(Encoder):

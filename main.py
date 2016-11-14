@@ -18,9 +18,11 @@ def main():
 
     graph, metadata = pj.json_to_graph_data(infile)
     iti = pj.identifier_to_int(graph)
-
+    with open("identifiers.txt", 'w') as f:
+        f.write(str(iti))
+    
     e = Encoder(graph, metadata, iti)
-    print(e.compress_metadata())
+    e.compress_metadata()
     #dots_input = pj.graph_to_dot(infile)
     #gspan_input = pj.graph_to_gspan(infile)
 

@@ -123,9 +123,9 @@ class Encoder():
                 if key == 'prov:label':
                     for label in self.labels_dict:
                         new_val = new_val.replace(label, self.labels_dict[label])
-                # replace identifiers
+                # don't encode identifiers because you can get these from the edge ID
                 elif key == 'cf:sender' or key == 'cf:receiver':
-                    new_val = self.iti[val]
+                    continue 
                 elif key == 'cf:type' and metadata.typ != 'relation' and val != None:
                     new_val = self.node_types_dict[val]
                 # don't replace any other strings in the value just yet 
@@ -253,4 +253,5 @@ class Encoder():
 
     def compress_metadata(self):
         self.encode_json()
-        return bitstr_to_bytes(self.json_to_bitstr())
+        with open('compressed_metadata.txt', 'wb') as f:
+            f.write(bitstr_to_bytes(self.json_to_bitstr()))

@@ -76,7 +76,8 @@ class Encoder():
         self.graph = graph
         self.metadata = metadata 
         self.iti = iti
-        self.id_bits = util.nbits_for_int(len(graph))
+        self.num_nodes = len(iti)
+        self.id_bits = util.nbits_for_int(len(iti))
 
         self.keys_dict = {elt:get_bits(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
         self.vals_dict = {elt:get_bits(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
@@ -118,9 +119,15 @@ class Encoder():
                 if key == 'prov:label':
                     for label in self.labels_dict:
                         new_val = new_val.replace(label, self.labels_dict[label])
-                # don't encode identifiers because you can get these from the edge ID
+                # the edge ID should be the sender id bits + receiver id bits 
                 elif key == 'cf:sender' or key == 'cf:receiver':
-                    continue 
+                    if identifier not in self.iti:
+                        self.iti[identifier] = 0
+                    if key == 'cf:sender':
+                        self.iti[identifier] += (self.iti[val] << self.id_bits)
+                    else: 
+                        self.iti[identifier] += self.iti[val]
+                    continue
                 elif key == 'cf:type' and metadata.typ != 'relation' and val != None:
                     new_val = self.node_types_dict[val]
                 # don't replace any other strings in the value just yet 
@@ -178,6 +185,27 @@ class Encoder():
         self.metadata[Encoder.DEFAULT_RELATION_KEY] = default_relation_data
         return self.metadata
 
+    def encode_metadata_entry(self, metadata):
+        entry = ''
+        equal_keys = []
+        encoded_keys = []
+        other_keys = []
+        for key, val in metadata.items():
+            if val == 'same':
+                equal_keys.append(key)
+            # actually encode the value here
+            elif isinstance(val, str) and val in self.vals_dict:
+                encoded_keys.append(key+self.vals_dict[val])
+            # this is some other key we couldn't encode 
+            # record the length of the string in bits
+            else:
+                byts = (str(val)).encode('utf-8')
+                bits = ''.join(["{0:b}".format(x) for x in byts])
+                other_keys.append(key+get_bits(len(bits), 8)+bits)
+
+        entry += ''.join(equal_keys) + ''.join(encoded_keys) + ''.join(other_keys)
+        return entry
+
     def json_to_bitstr(self):
         '''
         HEADER
@@ -185,62 +213,35 @@ class Encoder():
             node default data (see below: typ/ID will not be included)
             relation default data (see below: typID will not be included)
 
-        An entry for a node identifier looks like
+        An entry for an identifier looks like
             typ_bits    [type]
-            id_bits     [ID]
+            2*id_bits   [ID (RELATION ONLY)]
             key_bits    [num_equal_keys]
             key_bits    [num_encoded_keys]
             key_bits    [num_other_keys]
             key_bits*num_equal_keys                 [listof(equal_keys)]
             (key_bits+val_bits)*num_encoded_keys    [listof(key+encoded_value)]
             (key_bits+8+value_len)*num_other_keys   [listof(key+val_length(bytes)+value)]
-
-        Relation identifers are the same way, except 2*id_bits are used for the ID
         '''
-        entry_data = ''
-        for intid, metadata in self.metadata.items():
-            if intid == Encoder.DEFAULT_NODE_KEY or intid == Encoder.DEFAULT_RELATION_KEY:
-                continue
-            entry = ''
-            entry += metadata.typ
-            entry += intid 
-
-            equal_keys = []
-            encoded_keys = []
-            other_keys = []
-            for key, val in metadata.data.items():
-                if val == 'same':
-                    equal_keys.append(key)
-                # actually encode the value here
-                elif isinstance(val, str) and val in self.vals_dict:
-                    encoded_keys.append(key+self.vals_dict[val])
-                # this is some other key we couldn't encode 
-                # record the length of the string in bits
-                else:
-                    byts = (str(val)).encode('utf-8')
-                    bits = ''.join(["{0:b}".format(x) for x in byts])
-                    other_keys.append(key+get_bits(len(bits), 8)+bits)
-
-            entry += ''.join(equal_keys) + ''.join(encoded_keys) + ''.join(other_keys)
-            entry_data += entry
-
+        # encode default data 
         default_data = ''
         for defaults in [self.metadata[Encoder.DEFAULT_NODE_KEY], self.metadata[Encoder.DEFAULT_RELATION_KEY]]: 
-            equal_keys = []
-            encoded_keys = []
-            other_keys = []
-            for key, val in defaults.items():
-                assert(val!='same')
-                # actually encode the value here
-                if isinstance(val, str) and val in self.vals_dict:
-                    encoded_keys.append(key+self.vals_dict[val])
-                # this is some other key we couldn't encode 
-                # record the length of the string in bits
-                else:
-                    byts = (str(val)).encode('utf-8')
-                    bits = ''.join(["{0:b}".format(x) for x in byts])
-                    other_keys.append(key+get_bits(len(bits), 8)+bits)
-            default_data += ''.join(equal_keys) + ''.join(encoded_keys) + ''.join(other_keys)
+            default_data += self.encode_metadata_entry(defaults)
+        del self.metadata[Encoder.DEFAULT_NODE_KEY]
+        del self.metadata[Encoder.DEFAULT_RELATION_KEY]
+
+        # encode node data (in order of increasing rank)
+        entry_data = ''
+        for i in range(self.num_nodes):
+            entry_data += self.metadata[i].typ
+            entry_data += self.encode_metadata_entry(self.metadata[i].data)
+            del self.metadata[i]
+
+        # encode the leftover relation data
+        for intid, metadata in self.metadata.items():
+            entry_data += self.metadata[intid].typ
+            entry_data += get_bits(intid, 2*self.id_bits)
+            entry_data += self.encode_metadata_entry(metadata.data)
 
         # 32-bit integer to represent the total number of bits sent
         s = get_bits(len(entry_data), 32) + default_data + entry_data

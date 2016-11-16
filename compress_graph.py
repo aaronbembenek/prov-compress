@@ -2,7 +2,7 @@
 
 import abc
 import process_json as pj
-import rank_nodes
+import preprocess
 import sys
 import util
 
@@ -27,7 +27,6 @@ class BasicCompressor(Compressor):
     def compress(self):
         nbits_for_degree = util.nbits_for_int(max(self.pp.get_degrees()))
         nbits_for_delta = util.nbits_for_int(max(self.pp.get_deltas()))
-
         self.compressed = bytearray()
         self.compressed.extend(nbits_for_degree.to_bytes(1, byteorder="big"))
         self.compressed.extend(nbits_for_delta.to_bytes(1, byteorder="big"))
@@ -55,42 +54,86 @@ class BasicCompressor(Compressor):
             outdegree = len(edges)
             bs.write_int(len(edges), nbits_for_degree) 
             if outdegree == 0:
-                index.append(length)
+                index.append(length + index[-1])
                 continue 
             rank = order[node]
             edges.sort()
             first_delta = edges[0] - rank
+            nbits_for_first_delta = nbits_for_delta + 1
             if first_delta < 0:
                 bs.write_int(abs(first_delta) * 2 + 1,
-                        width=nbits_for_delta + 2)
+                        width=nbits_for_first_delta)
             elif first_delta > 0:
-                bs.write_int(first_delta * 2, width=nbits_for_delta + 2)
+                bs.write_int(first_delta * 2, width=nbits_for_first_delta)
             else:
                 assert False
-            length += nbits_for_delta + 2  
+            length += nbits_for_first_delta 
             for i in range(outdegree - 1):
                 bs.write_int(edges[i + 1] - edges[i], width=nbits_for_delta)
                 length += nbits_for_delta
-            index.append(length)
+            index.append(length + index[-1])
         index.pop()
-        return bs.to_bytearray(), index 
+        return bs.to_bytearray(), index
+
+    def decompress(self):
+        if not self.compressed:
+            self.compress()
+        bs = util.ReaderBitString(self.compressed)
+        nbits_for_degree = bs.read_int(8)
+        nbits_for_delta = bs.read_int(8)
+        nbits_for_first_delta = nbits_for_delta + 1
+        nbits_for_index = bs.read_int(8)
+        sizeof_index = bs.read_int(8)
+
+        index = []
+        for i in range(sizeof_index):
+            index.append(bs.read_int(nbits_for_index))
+        pad = (sizeof_index * nbits_for_index) % 8
+        if pad:
+            bs.read_int(pad)
+
+        g = {}
+        pos = 0
+        count = 0
+        id_to_identifier = {v:k for k, v in self.pp.rank().items()}
+        while count < sizeof_index:
+            assert index[count] == pos
+            degree = bs.read_int(nbits_for_degree)
+            pos += nbits_for_degree
+            edges = []
+            if degree != 0:
+                e0 = bs.read_int(nbits_for_first_delta)
+                pos += nbits_for_first_delta
+                if e0 % 2 == 0:
+                    e0 //= 2
+                else:
+                    e0 = -(e0 - 1) // 2
+                edges.append(count + e0)
+                for _ in range(degree - 1):
+                    edges.append(edges[-1] + bs.read_int(nbits_for_delta))
+                    pos += nbits_for_delta
+            g[id_to_identifier[count]] = [id_to_identifier[e] for e in edges]
+            count += 1
+        return g, index
 
 def main():
     if len(sys.argv) < 2:
-        #         4
+        #         2
         #         |
-        #         2   3   7
+        #         4   3   7
         #        / \ /    |
-        #       5   1     6
+        #       5   0     6
         #           |
-        #           0
+        #           1
         # (all edges point from bottom up)
-        g = {0:[1], 1:[2,3], 2:[4], 3:[], 4:[], 5:[2], 6:[7], 7:[]}
+        g = {1:[0], 0:[4,3], 2:[], 3:[], 4:[2], 5:[4], 6:[7], 7:[]}
         g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
     else:
         g, _ = pj.json_to_graph_data(sys.argv[1])
-    c = BasicCompressor(rank_nodes.BfsPreprocessor(g))
+    c = BasicCompressor(preprocess.BfsPreprocessor(g))
     c.compress()
+    c.write_to_file("trial")
+    print(c.decompress())
 
 if __name__ == "__main__":
     main()

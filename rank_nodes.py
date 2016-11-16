@@ -76,6 +76,9 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
                     (self.rankings[v], self.rankings[e.dest]) for e in edges])
         s.append("}")
         return "\n".join(s)
+
+    def get_graph(self):
+        return self.g
     
     @abc.abstractmethod
     def rank(self):
@@ -109,40 +112,33 @@ class BfsPreprocessor(CompressionPreprocessor):
         self.rankings = ids
         return ids
 
-def test1():
-    #         4
-    #         |
-    #         2   3   7
-    #        / \ /    |
-    #       5   1     6
-    #           |
-    #           0
-    # (all edges point from bottom up)
-    g = {0:[1], 1:[2,3], 2:[4], 3:[], 4:[], 5:[2], 6:[7], 7:[]}
-    g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
-    r = BfsPreprocessor(g)
-    print(r.rank())
-    print(r.get_deltas())
-    print(r.get_degrees())
-
 def main():
     if len(sys.argv) < 2:
-        test1()
+        #         4
+        #         |
+        #         2   3   7
+        #        / \ /    |
+        #       5   1     6
+        #           |
+        #           0
+        # (all edges point from bottom up)
+        gr = {0:[1], 1:[2,3], 2:[4], 3:[], 4:[], 5:[2], 6:[7], 7:[]}
+        gr = {v:[pj.Edge(e, None) for e in edges] for v, edges in gr.items()}
     else:
-        graph, _ = pj.json_to_graph_data(sys.argv[1])
-        transpose = util.transpose_graph(graph)
-        for name1, g in [("graph", graph), ("transpose", transpose)]:
-            print("<<< " + name1 + " >>>")
-            r = BfsPreprocessor(g)
-            for name2, d in [("deltas", r.get_deltas()),
-                    ("degrees", r.get_degrees())]:
-                print(name2 + ":", d)
-                print("mean:", statistics.mean(d))
-                print("stdev:", statistics.stdev(d))
-                print("median:", statistics.median(d))
-                print("mode:", statistics.mode(d))
-                print()
+        gr, _ = pj.json_to_graph_data(sys.argv[1])
+    transpose = util.transpose_graph(gr)
+    for name1, g in [("graph", gr), ("transpose", transpose)]:
+        print("<<< " + name1 + " >>>")
+        r = BfsPreprocessor(g)
+        for name2, d in [("deltas", r.get_deltas()),
+                ("degrees", r.get_degrees())]:
+            print(name2 + ":", d)
+            print("mean:", statistics.mean(d))
+            print("stdev:", statistics.stdev(d))
+            print("median:", statistics.median(d))
+            print("mode:", statistics.mode(d))
             print()
+        print()
 
 if __name__ == "__main__":
     main()

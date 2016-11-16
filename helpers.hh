@@ -10,10 +10,13 @@
 #include<algorithm>
 #include<cassert>
 #include<cmath>
+#include<bitset>
 
 #define DICT_BEGIN '{'
 #define DICT_END '}'
 #define RELATIVE_NODE '@'
+#define DEFAULT_NODE_KEY "-1"
+#define DEFAULT_RELATION_KEY "-2"
 
 using namespace std;
 
@@ -50,7 +53,7 @@ void set_dict_entries(map<K, string>& dict, string str) {
         auto pair = split(*kv, delim); 
 
         int key;
-        assert(bitstr_to_int(pair[0], key));
+        assert(bitstr_to_int(pair[1], key));
         dict[key] = pair[1];
     }
 }
@@ -61,29 +64,46 @@ void set_dict_entries(map<K, string>& dict, string str) {
  * from that index.
  */
 class BitSet {
+    static const int mask = (1<<3) - 1;
 
+public:
+    // constructor
     BitSet(string& s) {
-        for (int i = 0; i < s.length(); ++i) {
+        for (unsigned i = 0; i < s.length(); ++i) {
             bitsets_.push_back(s[i]);
         }
-    };
+    }
 
-    // returns up to 32 bits starting at pos
-    template <typename T>
-    void get_bits(T& val, size_t num_bits, size_t pos) {}
- 
-    template <>
-    void get_bits<int>(int& val, size_t num_bits, size_t pos) {
-        assert(num_bits <= sizeof(int)*8);
+    bool get_bit(size_t pos) {
         size_t char_pos = (pos >> 3);
-        size_t offset = (pos % 8);
+        size_t offset = (pos & mask);
+        return bitsets_[char_pos][offset];
+    }
 
-        size_t ctr = num_bits;
+    template <typename T>
+    void get_bits(T& val, size_t num_bits, size_t pos) {
+        assert(num_bits <= sizeof(T)*8);
+
         val = 0;
         for (size_t i = 0; i < num_bits; ++i) {
-            val |= bitsets_[char_pos+((offset+i) >> 3)][(offset+i)%8];
-            val << 1;
+            val |= get_bit(pos+i);
+            val <<= 1;
         }
+    }
+
+    // specialize for strings
+    void get_bits_as_str(string& str, size_t num_bits, size_t pos) {
+        assert((num_bits & mask) == 0); // must be a multiple of 8
+
+        string s = "";
+        for (size_t i = 0; i < (num_bits >> 3); ++i) {
+            bitset<8> b(0);
+            for (size_t j = 0; j < 1<<3; ++j) {
+                b[j] = get_bit(pos + (i<<3) + j);
+            }
+            s += static_cast<unsigned char>(b.to_ulong());
+        }
+        str = s;
     }
 
 private: 

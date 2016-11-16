@@ -58,7 +58,6 @@ void construct_metadata_dict(string& buffer) {
         // read type bits
         // read id bits
     }
-    */
 }
 
 string decode_from_default(string& identifier, vector<string>& data) {
@@ -69,6 +68,7 @@ string decode_from_default(string& identifier, vector<string>& data) {
 string get_metadata(string identifier) {
     return identifier;
 }
+*/
 
 int main(int argc, char *argv[]) {
     ifstream infile;

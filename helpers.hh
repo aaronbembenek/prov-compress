@@ -35,7 +35,7 @@ void set_dict_entries(map<K, string>& dict, string str);
 template <typename K, typename V>
 void print_dict(map<K, V>& dict) {
     for (auto i = dict.begin(); i != dict.end(); ++i) {
-        cout << i->first << ": " << i->second << endl;
+        cout << i->first << " => " << i->second << endl;
     }
 }
 
@@ -54,5 +54,40 @@ void set_dict_entries(map<K, string>& dict, string str) {
         dict[key] = pair[1];
     }
 }
+
+/*
+ * Given a string (std::string), returns an object that allows one to index
+ * into arbitrary bit locations of the string and read x number of bits
+ * from that index.
+ */
+class BitSet {
+
+    BitSet(string& s) {
+        for (int i = 0; i < s.length(); ++i) {
+            bitsets_.push_back(s[i]);
+        }
+    };
+
+    // returns up to 32 bits starting at pos
+    template <typename T>
+    void get_bits(T& val, size_t num_bits, size_t pos) {}
+ 
+    template <>
+    void get_bits<int>(int& val, size_t num_bits, size_t pos) {
+        assert(num_bits <= sizeof(int)*8);
+        size_t char_pos = (pos >> 3);
+        size_t offset = (pos % 8);
+
+        size_t ctr = num_bits;
+        val = 0;
+        for (size_t i = 0; i < num_bits; ++i) {
+            val |= bitsets_[char_pos+((offset+i) >> 3)][(offset+i)%8];
+            val << 1;
+        }
+    }
+
+private: 
+    std::vector<bitset<8>> bitsets_;
+};
 
 #endif /*HELPERS_H*/

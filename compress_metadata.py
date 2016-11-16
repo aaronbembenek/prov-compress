@@ -5,23 +5,18 @@ from process_json import (
     DICT_BEGIN,
     DICT_END,
     RELATIVE_NODE,
-    VALUES_SEP,
-    IDENTIFIER_SEP,
-    KEY_VAL_SEP,
-    UNKNOWN,
     RECOGNIZED_TYPS,
     Metadata,
     get_bits,
     bitstr_to_bytes
 )
+import util
 from collections import defaultdict
 
 '''
 TODO
-    - Convert JSON to BSON
-    - Convert JSON to UBJSON
-    - Compute common strings
     - Time compression?
+    - Use byte encoding instead of bitstring
 '''
 
 class Encoder():
@@ -34,13 +29,13 @@ class Encoder():
         0x00008000, 0x00010000, 0x00020000, 0x00040000, 0x00080000, 
         0x00100000, 0x00200000,
     }    
-    node_type_bits = math.ceil(math.log(len(node_types), 2))
+    node_type_bits = util.nbits_for_int(len(node_types))
     typ_strings = {
         'prefix', 'activity', 'relation', 'entity', 'agent', 'message', 
         'used', 'wasGeneratedBy', 'wasInformedBy', 'wasDerivedFrom',
         'unknown'
     }
-    typ_bits = math.ceil(math.log(len(typ_strings), 2))
+    typ_bits = util.nbits_for_int(len(typ_strings))
     key_strings = {
         DEFAULT_NODE_KEY, DEFAULT_RELATION_KEY,
         # cf: keys
@@ -55,13 +50,13 @@ class Encoder():
         # additional keys for relative versions
         RELATIVE_NODE
     }
-    key_bits = math.ceil(math.log(len(key_strings), 2))
+    key_bits = util.nbits_for_int(len(key_strings))
     # (prov:label is the key, and have a value following)
     prov_label_strings = {
         '[address]', '[path]', '[TODO]', '[task]', '[unknown]', '[block special]', '[char special]', 
         '[directory]', '[fifo]', '[link]', '[file]', '[socket]', 
     }
-    label_bits = math.ceil(math.log(len(prov_label_strings), 2))
+    label_bits = util.nbits_for_int(len(prov_label_strings))
     val_strings = {
         # Booleans
         'false', 'true',
@@ -75,13 +70,13 @@ class Encoder():
         'char', 'block', 'fifo', 'socket', 'msg', 'shm', 'sock', 'address', 'sb', 'file_name', 
         'ifc', 'disc_entity', 'disc_activity', 'disc_agent', 'disc_node', 'packet', 'mmaped_file',
     }
-    val_bits = math.ceil(math.log(len(val_strings), 2))
+    val_bits = util.nbits_for_int(len(val_strings))
 
     def __init__(self, graph, metadata, iti):
         self.graph = graph
         self.metadata = metadata 
         self.iti = iti
-        self.id_bits = math.ceil(math.log(len(graph), 2))
+        self.id_bits = util.nbits_for_int(len(graph))
 
         self.keys_dict = {elt:get_bits(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
         self.vals_dict = {elt:get_bits(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}

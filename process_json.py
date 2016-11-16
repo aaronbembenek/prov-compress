@@ -9,10 +9,6 @@ import math
 DICT_BEGIN = '{'
 DICT_END = '}'
 RELATIVE_NODE = '@'
-VALUES_SEP = ','
-IDENTIFIER_SEP = '#'
-KEY_VAL_SEP = '$'
-UNKNOWN = '?'
 
 RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 
@@ -32,7 +28,6 @@ class Metadata:
 
     def __repr__(self):
         return '(typ = "%s", data = "%s")' % (self.typ, self.data)
-
 
 def bitstr_to_bytes(s):
     return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
@@ -105,21 +100,6 @@ def identifier_to_int(graph):
                 v_ctr += 1
             iti[edge.label] = iti[v] + iti[edge.dest]
     return iti 
-'''
-# Returns a dictionary mapping all identifier strings for vertices
-# and edges in the graph to unique integers + n/r for node/relation
-def identifier_to_int(graph):
-    iti = {}
-    v_ctr = 0
-    e_ctr = 0
-    for v, edges in graph.items():
-        iti[v] = str(v_ctr) + 'n'
-        v_ctr += 1
-        for edge in edges:
-            iti[edge.label] = str(e_ctr) + 'r'
-            e_ctr += 1
-    return iti 
-'''
 
 # Returns a string of the graph in DOT format. To view a file in DOT format,
 # use `dot -Tps file.dot -o output.ps`.

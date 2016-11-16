@@ -1,6 +1,7 @@
 import json
 import sys
 import math
+import bitstring
 from process_json import (
     DICT_BEGIN,
     DICT_END,
@@ -8,7 +9,6 @@ from process_json import (
     RECOGNIZED_TYPS,
     Metadata,
     get_bits,
-    bitstr_to_bytes
 )
 import util
 from collections import defaultdict
@@ -250,4 +250,4 @@ class Encoder():
     def compress_metadata(self):
         self.encode_json()
         with open('compressed_metadata.txt', 'wb') as f:
-            f.write(bitstr_to_bytes(self.json_to_bitstr()))
+            bitstring.BitArray(bin=self.json_to_bitstr()).tofile(f)

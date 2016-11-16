@@ -22,7 +22,7 @@ using namespace std;
 
 /* BITSTR HELPERS */
 size_t nbits_for_int(int i);
-bool bitstr_to_int(string s, int& i);
+bool str_to_int(string s, int& i, int val_type_base);
 
 /* STRING HELPERS */
 vector<string> split(string& str, char delim);
@@ -33,7 +33,7 @@ string remove_char(string str, char ch);
 template <typename K, typename V>
 void print_dict(map<K, V>& dict);
 template <typename K>
-void set_dict_entries(map<K, string>& dict, string str);
+void set_dict_entries(map<K, string>& dict, string str, int val_type_base);
 
 template <typename K, typename V>
 void print_dict(map<K, V>& dict) {
@@ -43,7 +43,7 @@ void print_dict(map<K, V>& dict) {
 }
 
 template <typename K>
-void set_dict_entries(map<K, string>& dict, string str) {
+void set_dict_entries(map<K, string>& dict, string str, int val_type_base) {
     str = remove_char(str, DICT_BEGIN);
     str = remove_char(str, DICT_END);
     str = remove_char(str, '\'');
@@ -53,8 +53,8 @@ void set_dict_entries(map<K, string>& dict, string str) {
         auto pair = split(*kv, delim); 
 
         int key;
-        assert(bitstr_to_int(pair[1], key));
-        dict[key] = pair[1];
+        assert(str_to_int(pair[1], key, val_type_base));
+        dict[key] = pair[0];
     }
 }
 
@@ -70,14 +70,14 @@ public:
     // constructor
     BitSet(string& s) {
         for (unsigned i = 0; i < s.length(); ++i) {
-            bitsets_.push_back(s[i]);
+            bitsets_.push_back(bitset<8>(s[i]));
         }
     }
 
     bool get_bit(size_t pos) {
         size_t char_pos = (pos >> 3);
         size_t offset = (pos & mask);
-        return bitsets_[char_pos][offset];
+        return bitsets_[char_pos][7-offset];
     }
 
     template <typename T>
@@ -86,9 +86,12 @@ public:
 
         val = 0;
         for (size_t i = 0; i < num_bits; ++i) {
+            cout << i << " " << get_bit(pos+i) << endl;
             val |= get_bit(pos+i);
-            val <<= 1;
+            if (i != num_bits-1)
+                val <<= 1;
         }
+        cout << bitset<32>(val).to_string() << endl;;
     }
 
     // specialize for strings

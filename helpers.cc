@@ -5,10 +5,10 @@ size_t nbits_for_int(int i) {
     return floor(log(max(i, 1))/log(2)) + 1;
 }
 
-bool bitstr_to_int(string s, int& i) {
+bool str_to_int(string s, int& i, int val_type_base) {
     try {
         size_t pos;
-        i = stoi(s, &pos, 2);
+        i = stoi(s, &pos, val_type_base);
         // check whether the entire string was an integer
         return (s[pos] == '\0');
     } catch (const invalid_argument&) {

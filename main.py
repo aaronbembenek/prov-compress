@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 import process_json as pj
 from compress_metadata import Encoder
-from rank_nodes import BfsPreprocessor
+from preprocess import BfsPreprocessor
 import sys
 
 def main():
@@ -19,12 +19,11 @@ def main():
 
     graph, metadata = pj.json_to_graph_data(infile)
 
-    iti = pj.identifier_to_int(graph)
-    with open("identifiers.txt", 'w') as f:
-        f.write(str(iti))
     
     r = BfsPreprocessor(graph)
     iti = r.rank()
+    with open("identifiers.txt", 'w') as f:
+        f.write(str(iti))
     e = Encoder(graph, metadata, iti)
     e.compress_metadata()
     #dots_input = pj.graph_to_dot(infile)

@@ -29,9 +29,6 @@ class Metadata:
     def __repr__(self):
         return '(typ = "%s", data = "%s")' % (self.typ, self.data)
 
-def bitstr_to_bytes(s):
-    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
-
 def get_bits(int_data, num_bits):
     '''
     Converts an integer into a integer represented in num_bits bits.

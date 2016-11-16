@@ -16,7 +16,7 @@ void construct_prov_dicts() {
     std::vector<map<unsigned char, string>*> dicts = {&key_dict, &val_dict, &prov_label_dict, &typ_dict, &node_types_dict};
     std::vector<int*> bits = {&key_bits, &val_bits, &label_bits, &typ_bits, &node_type_bits};
     for (size_t i = 0; i < data.size(); ++i) {
-        set_dict_entries(*dicts[i], data[i]);
+        set_dict_entries(*dicts[i], data[i], 2);
         *bits[i] = nbits_for_int(log(dicts[i]->size()));
     }
 }
@@ -30,7 +30,7 @@ void construct_identifiers_dict() {
     getline(infile, buffer);
     infile.close();
 
-    set_dict_entries(intid_to_id_dict, buffer);
+    set_dict_entries(intid_to_id_dict, buffer, 10);
     // create the dictionary mapping the other direction
     for (auto i = intid_to_id_dict.begin(); i != intid_to_id_dict.end(); ++i) {
         id_to_intid_dict[i->second] = i->first; 
@@ -39,15 +39,12 @@ void construct_identifiers_dict() {
 
 void construct_metadata_dict(string& buffer) {
     BitSet bs(buffer); 
-
-    int total_size;
-    //int cur_pos;
-    string s;
-
-    bs.get_bits<int>(total_size, 32, 0);
-    bs.get_bits_as_str(s, 32, 0);
-    cout << s << endl;
-    cout << total_size << endl;
+    size_t total_size, cur_pos, chunk_to_read;
+    
+    cur_pos = 0;
+    chunk_to_read = 32;
+    bs.get_bits<size_t>(total_size, 32, 0);
+    cur_pos += chunk_to_read;
 
     while(1) {
         return;
@@ -88,6 +85,5 @@ int main(int argc, char *argv[]) {
     construct_prov_dicts();
     construct_identifiers_dict();
     construct_metadata_dict(buffer);
-
     return 0;
 }

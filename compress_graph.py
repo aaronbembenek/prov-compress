@@ -7,83 +7,90 @@ import sys
 import util
 
 class Compressor(metaclass=abc.ABCMeta):
-    def __init__(self, graph, preprocessor_factory, compressor_helper_factory):
-        self.g = graph
-        self.preprocessor_factory = preprocessor_factory
-        self.compressor_helper_factory = compressor_helper_factory
 
-    def compress(self):
-        preprocessor = self.preprocessor_factory(self.g)
-        ranking = preprocessor.rank()
-        ch = self.compressor_helper_factory(self.g, preprocessor)
-        bs = util.BitString()
-        locations = [0] 
-        for node in sorted(ranking.keys(), key=lambda v: ranking[v]):
-            ch.compress_node(node, bs)
-            locations.append(len(bs))
-        locations.pop()
-        byts = bs.to_bytearray()
-        print(byts)
-        print(len(byts))
-
-    def write_to_file(self, file):
-        if not self.compressed:
-            self.compress()
-        with open(file, "wb") as f:
-            f.write("wb")
-
-class CompressorHelper(metaclass=abc.ABCMeta):
-
-    def __init__(self, graph, preprocessor):
-        self.graph = graph
-        self.preprocessor = preprocessor
+    def __init__(self, preprocessor):
+        self.pp = preprocessor
+        self.compressed = None
 
     @abc.abstractmethod
-    def compress_node(self, node, bs):
+    def compress(self):
         pass
 
-class BasicCompressorHelper(CompressorHelper):
-
-    def __init__(self, graph, preprocessor):
-        super().__init__(graph, preprocessor)
-        delta = max(preprocessor.get_deltas())
-        self.bits_for_delta = util.nbits_for_int(delta) 
-        degree = max(preprocessor.get_degrees())
-        self.bits_for_degree = util.nbits_for_int(degree) 
-
-    def compress_node(self, node, bs):
-        edges = self.graph[node]
-        outdegree = len(edges)
-        bs.write_int(outdegree, width=self.bits_for_degree)
-        if outdegree == 0:
-            return
-        rankings = self.preprocessor.rank()
-        rank = rankings[node]
-        edges = [rankings[e.dest] for e in edges]
-        edges.sort()
-        first_delta = edges[0] - rank
-        if first_delta < 0:
-            bs.write_int(abs(first_delta) * 2 + 1, self.bits_for_delta + 2)
-        elif first_delta > 0:
-            bs.write_int(first_delta * 2, self.bits_for_delta + 2)
-        else:
-            assert False
-        for i in range(outdegree - 1):
-            bs.write_int(edges[i + 1] - edges[i], width=self.bits_for_delta)
+    def write_to_file(self, base_filename):
+        if not self.compressed:
+            self.compress()
+        with open(base_filename + ".cpg", "wb") as f:
+            f.write(self.compressed)
 
 class BasicCompressor(Compressor):
+    
+    def compress(self):
+        nbits_for_degree = util.nbits_for_int(max(self.pp.get_degrees()))
+        nbits_for_delta = util.nbits_for_int(max(self.pp.get_deltas()))
 
-    def __init__(self, graph, preprocessor_factory):
-        super().__init__(graph, preprocessor_factory,
-                lambda g, pp: BasicCompressorHelper(g, pp))
+        self.compressed = bytearray()
+        self.compressed.extend(nbits_for_degree.to_bytes(1, byteorder="big"))
+        self.compressed.extend(nbits_for_delta.to_bytes(1, byteorder="big"))
+       
+        compressed_nodes, index = self.compress_nodes(nbits_for_degree,
+                nbits_for_delta)
+
+        nbits_for_index = util.nbits_for_int(max(index))
+        self.compressed.extend(nbits_for_index.to_bytes(1, byteorder="big"))
+        self.compressed.extend(len(index).to_bytes(1, byteorder="big"))
+        bs = util.WriterBitString()
+        for i in index:
+            bs.write_int(i, width=nbits_for_index)
+        self.compressed.extend(bs.to_bytearray())
+        self.compressed.extend(compressed_nodes)
+
+    def compress_nodes(self, nbits_for_degree, nbits_for_delta):
+        g = self.pp.get_graph()
+        order = self.pp.rank()
+        bs = util.WriterBitString()
+        index = [0]
+        for node in sorted(order.keys(), key=lambda v: order[v]):
+            length = nbits_for_degree
+            edges = [order[e.dest] for e in g[node]]
+            outdegree = len(edges)
+            bs.write_int(len(edges), nbits_for_degree) 
+            if outdegree == 0:
+                index.append(length)
+                continue 
+            rank = order[node]
+            edges.sort()
+            first_delta = edges[0] - rank
+            if first_delta < 0:
+                bs.write_int(abs(first_delta) * 2 + 1,
+                        width=nbits_for_delta + 2)
+            elif first_delta > 0:
+                bs.write_int(first_delta * 2, width=nbits_for_delta + 2)
+            else:
+                assert False
+            length += nbits_for_delta + 2  
+            for i in range(outdegree - 1):
+                bs.write_int(edges[i + 1] - edges[i], width=nbits_for_delta)
+                length += nbits_for_delta
+            index.append(length)
+        index.pop()
+        return bs.to_bytearray(), index 
 
 def main():
     if len(sys.argv) < 2:
-        test1()
+        #         4
+        #         |
+        #         2   3   7
+        #        / \ /    |
+        #       5   1     6
+        #           |
+        #           0
+        # (all edges point from bottom up)
+        g = {0:[1], 1:[2,3], 2:[4], 3:[], 4:[], 5:[2], 6:[7], 7:[]}
+        g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
     else:
         g, _ = pj.json_to_graph_data(sys.argv[1])
-        c = BasicCompressor(g, lambda g: rank_nodes.BfsPreprocessor(g))
-        c.compress()
+    c = BasicCompressor(rank_nodes.BfsPreprocessor(g))
+    c.compress()
 
 if __name__ == "__main__":
     main()

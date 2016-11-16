@@ -15,7 +15,32 @@ def nbits_for_int(i):
     assert i >= 0
     return math.floor(math.log(max(i, 1))/math.log(2)) + 1
 
-class BitString:
+class ReaderBitString:
+
+    def __init__(self, byts):
+        self.byts = byts
+        self.index = -1 
+        self.pos = -1
+
+    def read_bit(self):
+        if self.pos < 0:
+            self.index += 1
+            self.pos = 7
+            assert self.index < len(self.byts)
+        b = 1 if self.byts[self.index] & (1 << self.pos) else 0
+        self.pos -= 1
+        return b
+
+    def read_int(self, width):
+        assert width > 0
+        i = 0
+        while width > 0:
+            i <<= 1
+            i |= self.read_bit()
+            width -= 1
+        return i
+
+class WriterBitString:
 
     def __init__(self):
         self.byts = bytearray()
@@ -53,17 +78,23 @@ class BitString:
         return self.len
 
 def main():
-    bs = BitString()
+    bs = WriterBitString()
     byts = bs.to_bytearray()
     bs.write_int(32)
     bs.write_int(3)
     print(byts.hex())
     print(len(bs))
-    bs = BitString()
+
+    bs = WriterBitString()
     byts = bs.to_bytearray()
     bs.write_int(3, width=3)
+    bs.write_int(113, width=7)
     print(byts.hex())
     print(len(bs))
+
+    bs = ReaderBitString(byts)
+    print(bs.read_int(3))
+    print(bs.read_int(7))
 
 if __name__ == "__main__":
     main()

@@ -38,7 +38,7 @@ class BasicCompressor(Compressor):
         nbits_for_index = util.nbits_for_int(max(index))
         self.compressed.extend(nbits_for_index.to_bytes(1, byteorder="big"))
         self.compressed.extend(len(index).to_bytes(1, byteorder="big"))
-        bs = util.BitString()
+        bs = util.WriterBitString()
         for i in index:
             bs.write_int(i, width=nbits_for_index)
         self.compressed.extend(bs.to_bytearray())
@@ -47,7 +47,7 @@ class BasicCompressor(Compressor):
     def compress_nodes(self, nbits_for_degree, nbits_for_delta):
         g = self.pp.get_graph()
         order = self.pp.rank()
-        bs = util.BitString()
+        bs = util.WriterBitString()
         index = [0]
         for node in sorted(order.keys(), key=lambda v: order[v]):
             length = nbits_for_degree

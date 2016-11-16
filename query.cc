@@ -38,20 +38,16 @@ void construct_identifiers_dict() {
 }
 
 void construct_metadata_dict(string& buffer) {
-    // TODO
-    /*
-    bitset<N * 8> b;
-    for (int i = 0; i < buffer.length(); ++i) {
-      char c = s[i];
-      for (int j = 7; j >= 0 && c; --j) {
-        if (c & 0x1) {
-          b.set(8 * i + j);
-        }
-        c >>= 1;
-      }
-    }
-    int total_size = 0;
-    int cur_size = 0;
+    BitSet bs(buffer); 
+
+    int total_size;
+    //int cur_pos;
+    string s;
+
+    bs.get_bits<int>(total_size, 32, 0);
+    bs.get_bits_as_str(s, 32, 0);
+    cout << s << endl;
+    cout << total_size << endl;
 
     while(1) {
         return;
@@ -68,7 +64,6 @@ string decode_from_default(string& identifier, vector<string>& data) {
 string get_metadata(string identifier) {
     return identifier;
 }
-*/
 
 int main(int argc, char *argv[]) {
     ifstream infile;

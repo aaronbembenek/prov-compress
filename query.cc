@@ -15,6 +15,7 @@ void construct_prov_dicts() {
 
     std::vector<map<unsigned char, string>*> dicts = {&key_dict, &val_dict, &prov_label_dict, &typ_dict, &node_types_dict};
     std::vector<int*> bits = {&key_bits, &val_bits, &label_bits, &typ_bits, &node_type_bits};
+    val_bits = max(val_bits, node_type_bits);
     for (size_t i = 0; i < data.size(); ++i) {
         set_dict_entries(*dicts[i], data[i], 2);
         *bits[i] = nbits_for_int(dicts[i]->size());
@@ -35,12 +36,19 @@ void construct_identifiers_dict() {
     for (auto i = intid_to_id_dict.begin(); i != intid_to_id_dict.end(); ++i) {
         id_to_intid_dict[i->second] = i->first; 
     }
+    id_bits = nbits_for_int(intid_to_id_dict.size());
 }
 
 void construct_metadata_dict(string& buffer) {
     BitSet bs(buffer); 
-    size_t total_size, cur_pos;
-   
+    size_t total_size, cur_pos, val_size;
+    unsigned char key, encoded_val, typ;
+    (void) typ;
+    string str_val;
+
+    size_t num_equal_keys, num_encoded_keys, num_other_keys;
+    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys};
+
     // get the total size of the data
     cur_pos = 0;
     bs.get_bits<size_t>(total_size, 32, cur_pos);
@@ -48,35 +56,28 @@ void construct_metadata_dict(string& buffer) {
 
     // get defaults
     vector<map<unsigned char, string>*> default_data_dicts = {&default_node_data, &default_relation_data};
-    size_t num_equal_keys, num_encoded_keys, num_other_keys = 0;
-    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys};
     for (map<unsigned char, string>* default_data: default_data_dicts) {
         for (size_t* key : num_key_types) {
             bs.get_bits<size_t>(*key, key_bits, cur_pos);
             cur_pos += key_bits;
         }
-
+        // there should be no keys equal to the default since we're encoding the default
         assert(num_equal_keys == 0);
-
-        unsigned char key, val;
+        // deal with encoded values
         for (size_t i = 0; i < num_encoded_keys; ++i) {
             bs.get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
             
             // we encode the cf:type as an integer if it is a node
+            bs.get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
             if (key_dict[key] == "cf:type" && (default_data != &default_relation_data)) {
-                bs.get_bits<unsigned char>(val, node_type_bits, cur_pos);
-                cur_pos += node_type_bits;
-                (*default_data)[key] = node_types_dict[val];
+                (*default_data)[key] = node_types_dict[encoded_val];
             } else {
-                bs.get_bits<unsigned char>(val, val_bits, cur_pos);
-                cur_pos += val_bits;
-                (*default_data)[key] = val_dict[val];
+                (*default_data)[key] = val_dict[encoded_val];
             }
+            cur_pos += val_bits;
         }
-
-        string val_str;
-        size_t val_size;
+        // nonencoded values
         for (size_t i = 0; i < num_other_keys; ++i) {
             bs.get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
@@ -84,15 +85,38 @@ void construct_metadata_dict(string& buffer) {
             bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
             
-            bs.get_bits_as_str(val_str, val_size, cur_pos);
+            bs.get_bits_as_str(str_val, val_size, cur_pos);
             cur_pos += val_size;
-            (*default_data)[key] = val_str;
+            (*default_data)[key] = str_val;
         }
     }
 
     // go through the rest of the string, creating a map from intid to string of bits
-    while(1) {
-        return;
+    // XXX figure out ID stuff... how do we know the order of relation identifiers?
+    for (size_t i = 0; i < id_to_intid_dict.size(); ++i) {
+        string data;
+        size_t size = 0;
+        size += typ_bits;
+
+        for (size_t* key : num_key_types) {
+            bs.get_bits<size_t>(*key, key_bits, cur_pos + size);
+            size += key_bits;
+        }
+
+        size += num_equal_keys * key_bits;
+        size += num_encoded_keys * (key_bits + val_bits);
+        // nonencoded values
+        for (size_t i = 0; i < num_other_keys; ++i) {
+            size += key_bits;
+            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos + size);
+            size += MAX_STRING_SIZE_BITS;
+            size += val_size;
+        }
+       
+        // add a few extra bits on the end so it's a valid string
+        bs.get_bits_as_str(data, size + (8-size%8), cur_pos);
+        nodes_data[intid_to_id_dict[i]] = data;
+        cur_pos += size;
     }
     //assert(cur_pos == total_size);
 }

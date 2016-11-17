@@ -30,7 +30,6 @@ class Encoder():
         0x00008000, 0x00010000, 0x00020000, 0x00040000, 0x00080000, 
         0x00100000, 0x00200000,
     }    
-    node_type_bits = util.nbits_for_int(len(node_types))
     typ_strings = {
         'prefix', 'activity', 'relation', 'entity', 'agent', 'message', 
         'used', 'wasGeneratedBy', 'wasInformedBy', 'wasDerivedFrom',
@@ -73,7 +72,7 @@ class Encoder():
         # For prov
         'cf:file'
     }
-    val_bits = util.nbits_for_int(len(val_strings))
+    val_bits = max(util.nbits_for_int(len(val_strings)), util.nbits_for_int(len(node_types)))
 
     def __init__(self, graph, metadata, iti):
         self.graph = graph
@@ -87,7 +86,7 @@ class Encoder():
         self.labels_dict = {elt:get_bits(i, Encoder.label_bits) 
                 for (i, elt) in enumerate(Encoder.prov_label_strings)}
         self.typs_dict = {elt:get_bits(i, Encoder.typ_bits) for (i, elt) in enumerate(Encoder.typ_strings)}
-        self.node_types_dict = {elt:get_bits(i, Encoder.node_type_bits) 
+        self.node_types_dict = {elt:get_bits(i, Encoder.val_bits) 
                 for (i, elt) in enumerate(Encoder.node_types)}
 
         with open("prov_data_dicts.txt", 'w') as f:

@@ -17,7 +17,7 @@ void construct_prov_dicts() {
     std::vector<int*> bits = {&key_bits, &val_bits, &label_bits, &typ_bits, &node_type_bits};
     for (size_t i = 0; i < data.size(); ++i) {
         set_dict_entries(*dicts[i], data[i], 2);
-        *bits[i] = nbits_for_int(log(dicts[i]->size()));
+        *bits[i] = nbits_for_int(dicts[i]->size());
     }
 }
 
@@ -39,18 +39,57 @@ void construct_identifiers_dict() {
 
 void construct_metadata_dict(string& buffer) {
     BitSet bs(buffer); 
-    size_t total_size, cur_pos, chunk_to_read;
-    
+    size_t total_size, cur_pos;
+   
+    // get the total size of the data
     cur_pos = 0;
-    chunk_to_read = 32;
-    bs.get_bits<size_t>(total_size, 32, 0);
-    cur_pos += chunk_to_read;
+    bs.get_bits<size_t>(total_size, 32, cur_pos);
+    cur_pos += 32;
+
+    // get defaults
+    vector<map<unsigned char, string>*> default_data_dicts = {&default_node_data, &default_relation_data};
+    size_t num_equal_keys, num_encoded_keys, num_other_keys = 0;
+    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys};
+    for (map<unsigned char, string>* default_data: default_data_dicts) {
+        for (size_t* key : num_key_types) {
+            bs.get_bits<size_t>(*key, key_bits, cur_pos);
+            cur_pos += key_bits;
+        }
+        assert(num_equal_keys == 0);
+        unsigned char key, val;
+        for (size_t i = 0; i < num_encoded_keys; ++i) {
+            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
+            cur_pos += key_bits;
+            bs.get_bits<unsigned char>(val, val_bits, cur_pos);
+            cur_pos += val_bits;
+            (*default_data)[key] = val_dict[val];
+        }
+        string val_str;
+        size_t val_size;
+        for (size_t i = 0; i < num_other_keys; ++i) {
+            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
+            cur_pos += key_bits;
+            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+            cur_pos += MAX_STRING_SIZE_BITS;
+            cout << bitset<6>(key).to_string() << " " << (int) val_size << endl;
+            bs.get_bits_as_str(val_str, val_size, cur_pos);
+            cur_pos += val_size;
+            (*default_data)[key] = val_str;
+        }
+        print_dict(default_node_data);
+        print_dict(default_relation_data);
+    }
+
+    // go through the rest of the string, creating a map from intid to string of bits
+    
 
     while(1) {
         return;
         // read type bits
         // read id bits
     }
+
+    assert(cur_pos == total_size);
 }
 
 string decode_from_default(string& identifier, vector<string>& data) {

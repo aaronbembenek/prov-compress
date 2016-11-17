@@ -86,23 +86,28 @@ public:
 
         val = 0;
         for (size_t i = 0; i < num_bits; ++i) {
-            cout << i << " " << get_bit(pos+i) << endl;
+            //cout << pos+i << " " << get_bit(pos+i) << endl;
             val |= get_bit(pos+i);
             if (i != num_bits-1)
                 val <<= 1;
         }
-        cout << bitset<32>(val).to_string() << endl;;
+        //cout << bitset<32>(val).to_string() << endl;
     }
 
     // specialize for strings
     void get_bits_as_str(string& str, size_t num_bits, size_t pos) {
+        if ((num_bits & mask) != 0) {
+            int i = 0;
+            get_bits<int>(i, 32, pos);
+            cout << bitset<32>(i).to_string() << endl;
+        }
         assert((num_bits & mask) == 0); // must be a multiple of 8
 
         string s = "";
         for (size_t i = 0; i < (num_bits >> 3); ++i) {
             bitset<8> b(0);
             for (size_t j = 0; j < 1<<3; ++j) {
-                b[j] = get_bit(pos + (i<<3) + j);
+                b[7-j] = get_bit(pos + (i << 3) + j);
             }
             s += static_cast<unsigned char>(b.to_ulong());
         }

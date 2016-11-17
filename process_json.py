@@ -9,6 +9,7 @@ import math
 DICT_BEGIN = '{'
 DICT_END = '}'
 RELATIVE_NODE = '@'
+MAX_STRING_SIZE_BITS = 10 
 
 RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 

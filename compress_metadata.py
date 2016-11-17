@@ -5,6 +5,7 @@ import bitstring
 from process_json import (
     DICT_BEGIN,
     DICT_END,
+    MAX_STRING_SIZE_BITS,
     RELATIVE_NODE,
     RECOGNIZED_TYPS,
     Metadata,
@@ -200,10 +201,16 @@ class Encoder():
             # record the length of the string in bits
             else:
                 byts = (str(val)).encode('utf-8')
-                bits = ''.join(["{0:b}".format(x) for x in byts])
-                other_keys.append(key+get_bits(len(bits), 8)+bits)
+                bits = ''.join(["{0:08b}".format(x) for x in byts])
+                print(key, len(bits), bits)
+                other_keys.append(key+get_bits(len(bits), MAX_STRING_SIZE_BITS)+bits)
 
-        entry += ''.join(equal_keys) + ''.join(encoded_keys) + ''.join(other_keys)
+        entry += (get_bits(len(equal_keys), Encoder.key_bits) 
+            + get_bits(len(encoded_keys), Encoder.key_bits) 
+            + get_bits(len(other_keys), Encoder.key_bits) 
+            + ''.join(equal_keys) 
+            + ''.join(encoded_keys) 
+            + ''.join(other_keys))
         return entry
 
     def json_to_bitstr(self):

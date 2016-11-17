@@ -31,12 +31,16 @@ void construct_identifiers_dict() {
     getline(infile, buffer);
     infile.close();
 
-    set_dict_entries(intid_to_id_dict, buffer, 10);
-    // create the dictionary mapping the other direction
-    for (auto i = intid_to_id_dict.begin(); i != intid_to_id_dict.end(); ++i) {
-        id_to_intid_dict[i->second] = i->first; 
+    string substr = buffer.substr(0, 32);
+    string rest = buffer.substr(32);
+    BitSet bs(substr);
+    bs.get_bits(id_bits, 32, 0);
+
+    auto ids = split(rest, ',');
+    for (size_t i = 0; i < ids.size(); ++i) {
+        intid_to_id_dict[i] = ids[i]; 
+        id_to_intid_dict[ids[i]] = i; 
     }
-    id_bits = nbits_for_int(intid_to_id_dict.size());
 }
 
 void construct_metadata_dict(string& buffer) {

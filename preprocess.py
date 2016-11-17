@@ -10,11 +10,13 @@ import util
 # Abstract class for compression preprocesor.
 class CompressionPreprocessor(metaclass=abc.ABCMeta):
 
-    def __init__(self, graph):
+    def __init__(self, graph, metadata):
         self.g = graph 
+        self.metadata = metadata
         self.rankings = None
         self.deltas = None
         self.degrees = None
+        self.ids = None
 
     # Return the nodes in decreasing "reachable order." The nodes are
     # ordered so that a node is earlier in the order the more nodes are
@@ -79,6 +81,31 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
 
     def get_graph(self):
         return self.g
+
+    def construct_identifier_ids(self):
+        '''
+        Adds the identifiers for relations to the identifier-to-id dictionary and 
+        writes this to file.
+        The first 32 bits of the file represent the number of nodes.
+        '''
+        if self.ids:
+            return self.ids
+        if not self.rankings:
+            self.rank()
+        node_bits = util.nbits_for_int(len(self.rankings))
+        self.ids = self.rankings.copy()
+        
+        for identifier, metadata in self.metadata.items():
+            if metadata.typ == 'relation':
+                # put IDs for relation identifiers in the dictionary
+                self.ids[identifier] = ((self.rankings[metadata.data['cf:sender']] << node_bits) 
+                                        + self.rankings[metadata.data['cf:receiver']])
+        sorted_idents = sorted(self.ids.keys(), key=lambda v: self.ids[v])
+        with open("identifiers.txt", 'w') as f:
+            f.write(len(self.rankings).to_bytes(4, byteorder='big').decode('utf-8'))
+            for ident in sorted_idents:
+                f.write(','+ident)
+        return self.ids
     
     @abc.abstractmethod
     def rank(self):

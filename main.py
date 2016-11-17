@@ -19,12 +19,8 @@ def main():
 
     graph, metadata = pj.json_to_graph_data(infile)
 
-    
-    r = BfsPreprocessor(graph)
-    iti = r.rank()
-    with open("identifiers.txt", 'w') as f:
-        f.write(str(iti))
-    e = Encoder(graph, metadata, iti)
+    r = BfsPreprocessor(graph, metadata)
+    e = Encoder(graph, metadata, r.construct_identifier_ids())
     e.compress_metadata()
     #dots_input = pj.graph_to_dot(infile)
     #gspan_input = pj.graph_to_gspan(infile)

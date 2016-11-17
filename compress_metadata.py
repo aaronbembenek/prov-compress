@@ -96,95 +96,61 @@ class Encoder():
             f.write(str(self.typs_dict))
             f.write(str(self.node_types_dict))
 
-    def encode_json(self):
+
+    def prepare_metadata_json(self):
         ''' 
-        Encodes the JSON in place:
-            - reference encodes metadata with corresponding defaults
-            - replaces common strings with their identifiers 
-                (except for complete string matches---see json_to_bytes for this part)
-            - replaces identifiers with their mapped_to number/int ID
-        Return: dictionary in JSON format
+            - reference encodes metadata JSON with corresponding defaults
+            - creates and adds relation identifiers' IDS to dict
+            - writes sorted list of identifiers to file
         '''
-
-        # Do one pass to replace common strings and the identifiers
-        # since we can't modify the metadata in place during the loop, make a copy
-        my_metadata = {}
-        for identifier, metadata in self.metadata.items():
-            new_metadata = {}
-            for key, val in metadata.data.items():
-                new_val = val
-                new_key = key
-                # replace the key
-                if key in self.keys_dict:
-                    new_key = self.keys_dict[key]
-                # replace any labels
-                if key == 'prov:label':
-                    for label in self.labels_dict:
-                        new_val = new_val.replace(label, self.labels_dict[label])
-                # the edge ID should be the sender id bits + receiver id bits 
-                elif key == 'cf:sender' or key == 'cf:receiver':
-                    if identifier not in self.iti:
-                        self.iti[identifier] = 0
-                    if key == 'cf:sender':
-                        self.iti[identifier] += (self.iti[val] << self.id_bits)
-                    else: 
-                        self.iti[identifier] += self.iti[val]
-                    continue
-                # don't replace any other strings in the value just yet 
-
-                # set metadata.data appropriately
-                new_metadata[new_key] = new_val
-           
-            # replace identifier with ID key, metadata with the encoded metadata
-            my_metadata[self.iti[identifier]] = Metadata(self.typs_dict[metadata.typ], new_metadata)
-        self.metadata = my_metadata
-
-        # Do another pass to encode with reference to default metadata
         default_node_data = {}
         default_relation_data = {}
         id_dict = {}
-        
-        for intid, metadata in self.metadata.items():
+        num_nodes = len(self.iti)
+      
+        for identifier, metadata in self.metadata.items():
             default_data = default_node_data
             # since we can't modify the metadata in place during the loop, make a copy
-            if metadata.typ == self.typs_dict['relation']:
+            if metadata.typ == 'relation':
                 default_data = default_relation_data
+                # we don't want to include sender/receiver in metadata
+                del metadata.data['cf:sender']
+                del metadata.data['cf:receiver']
             else:
-                if self.keys_dict['cf:id'] not in metadata.data:
+                if 'cf:id' not in metadata.data:
                     # this is some default camflow metadata
                     continue
                 else:
-                    cf_id = metadata.data[self.keys_dict['cf:id']]
+                    cf_id = metadata.data['cf:id']
                     if cf_id in id_dict and cf_id != None:
                         # this id has had self.metadata defined for it before.
                         # compress with reference to this self.metadata
                         # Note that node metadata requires unpacking the relative metadata, then
                         # calculate the node's data in reference to that relative
-                        default_data = id_dict[cf_id][1]
+                        default_data = id_dict[cf_id]
                     else: 
                         default_data = default_node_data
                         # store the original metadata of the first time we see a camflow ID
-                        id_dict[cf_id] = (intid, metadata.data)
-            for encoded_key, val in metadata.data.items():
+                        id_dict[cf_id] = metadata.data
+            for key, val in metadata.data.items():
                 # set the default node if there have been no nodes 
                 # with this key compressed so far
-                if encoded_key not in default_data:
-                    assert(encoded_key != RELATIVE_NODE)
-                    default_data[encoded_key] = val
+                if key not in default_data:
+                    assert(key != RELATIVE_NODE)
+                    default_data[key] = val
                 # delta encode with reference to the default
-                if val == default_data[encoded_key]:
-                    metadata.data[encoded_key] = 'same'
+                if val == default_data[key]:
+                    metadata.data[key] = 'same'
             
             # add a marker in the metadata that this is encoded relative 
             # to another node with the same cf_id
-            if metadata.typ != self.typs_dict['relation'] and cf_id in id_dict and cf_id != None:
-                metadata.data[self.keys_dict[RELATIVE_NODE]] = cf_id 
+            if metadata.typ != 'relation' and cf_id in id_dict and cf_id != None:
+                metadata.data[RELATIVE_NODE] = cf_id 
         
         # add defaults to the metadata dictionary under default 
         self.metadata[Encoder.DEFAULT_NODE_KEY] = default_node_data
         self.metadata[Encoder.DEFAULT_RELATION_KEY] = default_relation_data
-        return self.metadata
-
+ 
     def encode_metadata_entry(self, metadata):
         entry = ''
         equal_keys = []
@@ -192,21 +158,26 @@ class Encoder():
         other_keys = []
         for key, val in metadata.items():
             if val == 'same':
-                equal_keys.append(key)
+                equal_keys.append(self.keys_dict[key])
             
-            # actually encode the value here
+            # encode the value here
+            # replace any labels
+            if key == 'prov:label':
+                for label in self.labels_dict:
+                    val = val.replace(label, self.labels_dict[label])
+            # replace any common strings
             elif isinstance(val, str) and val in self.vals_dict:
-                encoded_keys.append(key+self.vals_dict[val])
-            elif key == self.keys_dict['cf:type'] and val != None:
-                assert(isinstance(val, int))
-                encoded_keys.append(key+self.node_types_dict[val])
+                encoded_keys.append(self.keys_dict[key]+self.vals_dict[val])
+            # replace the types
+            elif key == 'cf:type' and isinstance(val, int):
+                encoded_keys.append(self.keys_dict[key]+self.node_types_dict[val])
             
             # this is some other key we couldn't encode 
             # record the length of the string in bits
             else:
                 byts = (str(val)).encode('utf-8')
                 bits = ''.join(["{0:08b}".format(x) for x in byts])
-                other_keys.append(key+get_bits(len(bits), MAX_STRING_SIZE_BITS)+bits)
+                other_keys.append(self.keys_dict[key]+get_bits(len(bits), MAX_STRING_SIZE_BITS)+bits)
 
         entry += (get_bits(len(equal_keys), Encoder.key_bits) 
             + get_bits(len(encoded_keys), Encoder.key_bits) 
@@ -216,7 +187,7 @@ class Encoder():
             + ''.join(other_keys))
         return entry
 
-    def json_to_bitstr(self):
+    def encode_json(self):
         '''
         HEADER
             32 bits: total size of metadata
@@ -224,8 +195,8 @@ class Encoder():
             relation default data (see below: typID will not be included)
 
         An entry for an identifier looks like
-            typ_bits    [type]
             2*id_bits   [ID (RELATION ONLY)]
+            typ_bits    [type]
             key_bits    [num_equal_keys]
             key_bits    [num_encoded_keys]
             key_bits    [num_other_keys]
@@ -242,22 +213,18 @@ class Encoder():
 
         # encode node data (in order of increasing rank)
         entry_data = ''
-        for i in range(self.num_nodes):
-            entry_data += self.metadata[i].typ
-            entry_data += self.encode_metadata_entry(self.metadata[i].data)
-            del self.metadata[i]
-
-        # encode the leftover relation data
-        for intid, metadata in self.metadata.items():
-            entry_data += self.metadata[intid].typ
-            entry_data += get_bits(intid, 2*self.id_bits)
-            entry_data += self.encode_metadata_entry(metadata.data)
+        sorted_idents = sorted(self.iti.keys(), key=lambda v: self.iti[v])
+        for identifier in sorted_idents: 
+            if self.metadata[identifier].typ == 'relation':
+                entry_data += get_bits(self.iti[identifier], 2*self.id_bits)
+            entry_data += self.typs_dict[self.metadata[identifier].typ]
+            entry_data += self.encode_metadata_entry(self.metadata[identifier].data)
 
         # 32-bit integer to represent the total number of bits sent
         s = get_bits(len(entry_data), 32) + default_data + entry_data
         return s
 
     def compress_metadata(self):
-        self.encode_json()
+        self.prepare_metadata_json()
         with open('compressed_metadata.txt', 'wb') as f:
-            bitstring.BitArray(bin=self.json_to_bitstr()).tofile(f)
+            bitstring.BitArray(bin=self.encode_json()).tofile(f)

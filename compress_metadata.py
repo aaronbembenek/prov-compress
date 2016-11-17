@@ -70,6 +70,8 @@ class Encoder():
         'string', 'relation', 'task', 'inode_unknown', 'link', 'file', 'directory', 
         'char', 'block', 'fifo', 'socket', 'msg', 'shm', 'sock', 'address', 'sb', 'file_name', 
         'ifc', 'disc_entity', 'disc_activity', 'disc_agent', 'disc_node', 'packet', 'mmaped_file',
+        # For prov
+        'cf:file'
     }
     val_bits = util.nbits_for_int(len(val_strings))
 
@@ -129,8 +131,6 @@ class Encoder():
                     else: 
                         self.iti[identifier] += self.iti[val]
                     continue
-                elif key == 'cf:type' and metadata.typ != 'relation' and val != None:
-                    new_val = self.node_types_dict[val]
                 # don't replace any other strings in the value just yet 
 
                 # set metadata.data appropriately
@@ -194,15 +194,19 @@ class Encoder():
         for key, val in metadata.items():
             if val == 'same':
                 equal_keys.append(key)
+            
             # actually encode the value here
             elif isinstance(val, str) and val in self.vals_dict:
                 encoded_keys.append(key+self.vals_dict[val])
+            elif key == self.keys_dict['cf:type'] and val != None:
+                assert(isinstance(val, int))
+                encoded_keys.append(key+self.node_types_dict[val])
+            
             # this is some other key we couldn't encode 
             # record the length of the string in bits
             else:
                 byts = (str(val)).encode('utf-8')
                 bits = ''.join(["{0:08b}".format(x) for x in byts])
-                print(key, len(bits), bits)
                 other_keys.append(key+get_bits(len(bits), MAX_STRING_SIZE_BITS)+bits)
 
         entry += (get_bits(len(equal_keys), Encoder.key_bits) 

@@ -55,41 +55,46 @@ void construct_metadata_dict(string& buffer) {
             bs.get_bits<size_t>(*key, key_bits, cur_pos);
             cur_pos += key_bits;
         }
+
         assert(num_equal_keys == 0);
+
         unsigned char key, val;
         for (size_t i = 0; i < num_encoded_keys; ++i) {
             bs.get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
-            bs.get_bits<unsigned char>(val, val_bits, cur_pos);
-            cur_pos += val_bits;
-            (*default_data)[key] = val_dict[val];
+            
+            // we encode the cf:type as an integer if it is a node
+            if (key_dict[key] == "cf:type" && (default_data != &default_relation_data)) {
+                bs.get_bits<unsigned char>(val, node_type_bits, cur_pos);
+                cur_pos += node_type_bits;
+                (*default_data)[key] = node_types_dict[val];
+            } else {
+                bs.get_bits<unsigned char>(val, val_bits, cur_pos);
+                cur_pos += val_bits;
+                (*default_data)[key] = val_dict[val];
+            }
         }
+
         string val_str;
         size_t val_size;
         for (size_t i = 0; i < num_other_keys; ++i) {
             bs.get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
+            
             bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
-            cout << bitset<6>(key).to_string() << " " << (int) val_size << endl;
+            
             bs.get_bits_as_str(val_str, val_size, cur_pos);
             cur_pos += val_size;
             (*default_data)[key] = val_str;
         }
-        print_dict(default_node_data);
-        print_dict(default_relation_data);
     }
 
     // go through the rest of the string, creating a map from intid to string of bits
-    
-
     while(1) {
         return;
-        // read type bits
-        // read id bits
     }
-
-    assert(cur_pos == total_size);
+    //assert(cur_pos == total_size);
 }
 
 string decode_from_default(string& identifier, vector<string>& data) {

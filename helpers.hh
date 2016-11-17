@@ -54,7 +54,7 @@ void set_dict_entries(map<K, string>& dict, string str, int val_type_base) {
 
         int key;
         assert(str_to_int(pair[1], key, val_type_base));
-        dict[key] = pair[0];
+        dict[key] = remove_char(pair[0], ' ');
     }
 }
 
@@ -96,11 +96,6 @@ public:
 
     // specialize for strings
     void get_bits_as_str(string& str, size_t num_bits, size_t pos) {
-        if ((num_bits & mask) != 0) {
-            int i = 0;
-            get_bits<int>(i, 32, pos);
-            cout << bitset<32>(i).to_string() << endl;
-        }
         assert((num_bits & mask) == 0); // must be a multiple of 8
 
         string s = "";

@@ -15,6 +15,15 @@ def nbits_for_int(i):
     assert i >= 0
     return math.floor(math.log(max(i, 1))/math.log(2)) + 1
 
+def int2bitstr(int_data, num_bits):
+    '''
+    Converts an integer into a integer represented in num_bits bits.
+    Returns a bit string of 0s and 1s
+    '''
+    assert(int_data == 0 or math.ceil(math.log(int_data, 2)) <= num_bits)
+    format_str = '{0:0%db}' % num_bits
+    return (format_str.format(int_data))
+
 class ReaderBitString:
 
     def __init__(self, byts):

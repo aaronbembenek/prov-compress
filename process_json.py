@@ -4,19 +4,15 @@ graph and a dictionary of metadata.
 Provides functions to output data in different formats for dot/gspan processing.
 '''
 import json
-import math
 
 DICT_BEGIN = '{'
 DICT_END = '}'
-RELATIVE_NODE = '@'
-MAX_STRING_SIZE_BITS = 10 
 
 RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 
 class Edge:
     def __init__(self, dest, label):
         self.dest = dest
-        # XXX do we want to use common strings for this?
         self.label = label
 
     def __repr__(self):
@@ -29,15 +25,6 @@ class Metadata:
 
     def __repr__(self):
         return '(typ = "%s", data = "%s")' % (self.typ, self.data)
-
-def get_bits(int_data, num_bits):
-    '''
-    Converts an integer into a integer represented in num_bits bits.
-    Returns a sequence of bytes
-    '''
-    assert(int_data == 0 or math.ceil(math.log(int_data, 2)) <= num_bits)
-    format_str = '{0:0%db}' % num_bits
-    return (format_str.format(int_data))
 
 # Returns an adjacency-list style graph and dictionary of metadata, both
 # indexed by Camflow provenance identifier.
@@ -80,24 +67,6 @@ def json_to_graph_data(infile):
         metadata[identifier] = Metadata("unknown", {'cf:id':-i, 'cf:type':None})
         graph.setdefault(identifier, [])
     return graph, metadata
-
-# Returns a dictionary mapping all identifier strings for vertices 
-# and edges in the graph to unique bitstrings. 
-# Edge bitstrings are the concatenation of the source+dest vertices' bitstrings
-def identifier_to_int(graph):
-    iti = {}
-    v_ctr = 0
-    v_bits = math.ceil(math.log(len(graph), 2))
-    for v, edges in graph.items():
-        if v not in iti:
-            iti[v] = get_bits(v_ctr, v_bits)
-            v_ctr += 1
-        for edge in edges:
-            if edge.dest not in iti:
-                iti[edge.dest] = get_bits(v_ctr, v_bits)
-                v_ctr += 1
-            iti[edge.label] = iti[v] + iti[edge.dest]
-    return iti 
 
 # Returns a string of the graph in DOT format. To view a file in DOT format,
 # use `dot -Tps file.dot -o output.ps`.

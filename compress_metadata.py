@@ -5,11 +5,7 @@ import bitstring
 from process_json import (
     DICT_BEGIN,
     DICT_END,
-    MAX_STRING_SIZE_BITS,
-    RELATIVE_NODE,
     RECOGNIZED_TYPS,
-    Metadata,
-    get_bits,
 )
 import util
 from collections import defaultdict
@@ -17,11 +13,14 @@ from collections import defaultdict
 '''
 TODO
     - Time compression?
+    - Label stuff
     - Use byte encoding instead of bitstring
     - Compress numbers (flag with one bit)
 '''
 
 class Encoder():
+    MAX_STRING_SIZE_BITS = 10 
+    RELATIVE_NODE = '@'
     DEFAULT_NODE_KEY = '-1'
     DEFAULT_RELATION_KEY = '-2'
     node_types = {
@@ -82,12 +81,12 @@ class Encoder():
         self.num_nodes = len(graph)
         self.id_bits = util.nbits_for_int(self.num_nodes)
 
-        self.keys_dict = {elt:get_bits(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
-        self.vals_dict = {elt:get_bits(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
-        self.labels_dict = {elt:get_bits(i, Encoder.label_bits) 
+        self.keys_dict = {elt:util.int2bitstr(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
+        self.vals_dict = {elt:util.int2bitstr(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
+        self.labels_dict = {elt:util.int2bitstr(i, Encoder.label_bits) 
                 for (i, elt) in enumerate(Encoder.prov_label_strings)}
-        self.typs_dict = {elt:get_bits(i, Encoder.typ_bits) for (i, elt) in enumerate(Encoder.typ_strings)}
-        self.node_types_dict = {elt:get_bits(i, Encoder.val_bits) 
+        self.typs_dict = {elt:util.int2bitstr(i, Encoder.typ_bits) for (i, elt) in enumerate(Encoder.typ_strings)}
+        self.node_types_dict = {elt:util.int2bitstr(i, Encoder.val_bits) 
                 for (i, elt) in enumerate(Encoder.node_types)}
 
         with open("prov_data_dicts.txt", 'w') as f:
@@ -136,7 +135,7 @@ class Encoder():
                 # set the default node if there have been no nodes 
                 # with this key compressed so far
                 if key not in default_data:
-                    assert(key != RELATIVE_NODE)
+                    assert(key != Encoder.RELATIVE_NODE)
                     default_data[key] = val
                 # delta encode with reference to the default
                 if val == default_data[key]:
@@ -145,7 +144,7 @@ class Encoder():
             # add a marker in the metadata that this is encoded relative 
             # to another node with the same cf_id
             if metadata.typ != 'relation' and cf_id in id_dict and cf_id != None:
-                metadata.data[RELATIVE_NODE] = self.iti[id_dict[cf_id][0]]
+                metadata.data[Encoder.RELATIVE_NODE] = self.iti[id_dict[cf_id][0]]
         
         # add defaults to the metadata dictionary under default 
         self.metadata[Encoder.DEFAULT_NODE_KEY] = default_node_data
@@ -179,11 +178,13 @@ class Encoder():
             else:
                 byts = (str(val)).encode('utf-8')
                 bits = ''.join(["{0:08b}".format(x) for x in byts])
-                other_keys.append(self.keys_dict[key]+get_bits(len(bits), MAX_STRING_SIZE_BITS)+bits)
+                other_keys.append(self.keys_dict[key]
+                        +util.int2bitstr(len(bits), Encoder.MAX_STRING_SIZE_BITS)
+                        +bits)
 
-        entry += (get_bits(len(equal_keys), Encoder.key_bits) 
-            + get_bits(len(encoded_keys), Encoder.key_bits) 
-            + get_bits(len(other_keys), Encoder.key_bits) 
+        entry += (util.int2bitstr(len(equal_keys), Encoder.key_bits) 
+            + util.int2bitstr(len(encoded_keys), Encoder.key_bits) 
+            + util.int2bitstr(len(other_keys), Encoder.key_bits) 
             + ''.join(equal_keys) 
             + ''.join(encoded_keys) 
             + ''.join(other_keys))
@@ -218,12 +219,12 @@ class Encoder():
         sorted_idents = sorted(self.iti.keys(), key=lambda v: self.iti[v])
         for identifier in sorted_idents: 
             if self.metadata[identifier].typ == 'relation':
-                entry_data += get_bits(self.iti[identifier], 2*self.id_bits)
+                entry_data += util.int2bitstr(self.iti[identifier], 2*self.id_bits)
             entry_data += self.typs_dict[self.metadata[identifier].typ]
             entry_data += self.encode_metadata_entry(self.metadata[identifier].data)
 
         # 32-bit integer to represent the total number of bits sent
-        s = get_bits(len(entry_data) + len(default_data) + 32, 32) + default_data + entry_data
+        s = util.int2bitstr(len(entry_data) + len(default_data) + 32, 32) + default_data + entry_data
         return s
 
     def compress_metadata(self):

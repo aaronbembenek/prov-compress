@@ -78,8 +78,8 @@ class Encoder():
         self.graph = graph
         self.metadata = metadata 
         self.iti = iti
-        self.num_nodes = len(iti)
-        self.id_bits = util.nbits_for_int(len(iti))
+        self.num_nodes = len(graph)
+        self.id_bits = util.nbits_for_int(self.num_nodes)
 
         self.keys_dict = {elt:get_bits(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
         self.vals_dict = {elt:get_bits(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
@@ -106,7 +106,6 @@ class Encoder():
         default_node_data = {}
         default_relation_data = {}
         id_dict = {}
-        num_nodes = len(self.iti)
       
         for identifier, metadata in self.metadata.items():
             default_data = default_node_data
@@ -159,19 +158,19 @@ class Encoder():
         for key, val in metadata.items():
             if val == 'same':
                 equal_keys.append(self.keys_dict[key])
-            
+                continue
             # encode the value here
             # replace any labels
             if key == 'prov:label':
                 for label in self.labels_dict:
                     val = val.replace(label, self.labels_dict[label])
             # replace any common strings
-            elif isinstance(val, str) and val in self.vals_dict:
+            if isinstance(val, str) and val in self.vals_dict:
                 encoded_keys.append(self.keys_dict[key]+self.vals_dict[val])
             # replace the types
-            elif key == 'cf:type' and isinstance(val, int):
-                encoded_keys.append(self.keys_dict[key]+self.node_types_dict[val])
-            
+            elif key == 'cf:type':
+                if isinstance(val, int):
+                    encoded_keys.append(self.keys_dict[key]+self.node_types_dict[val])
             # this is some other key we couldn't encode 
             # record the length of the string in bits
             else:
@@ -221,7 +220,7 @@ class Encoder():
             entry_data += self.encode_metadata_entry(self.metadata[identifier].data)
 
         # 32-bit integer to represent the total number of bits sent
-        s = get_bits(len(entry_data), 32) + default_data + entry_data
+        s = get_bits(len(entry_data) + len(default_data) + 32, 32) + default_data + entry_data
         return s
 
     def compress_metadata(self):

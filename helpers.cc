@@ -44,3 +44,14 @@ vector<string> split(string& str, string& delim) {
     data.push_back(str);
     return data;
 }
+
+string read_file(string filename, string& str) {
+    std::ifstream t(filename);
+    t.seekg(0, ios::end);   
+    str.reserve(t.tellg());
+    t.seekg(0, ios::beg);
+
+    str.assign((istreambuf_iterator<char>(t)),
+                istreambuf_iterator<char>());
+    return str;
+}

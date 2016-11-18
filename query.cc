@@ -1,15 +1,10 @@
 #include "query.hh"
 
 void construct_prov_dicts() {
-    ifstream infile;
     string buffer;
     vector<string> data;
 
-    infile.open(PROV_DICTS_FILE, ios::in);
-    assert(infile.is_open());
-    getline(infile, buffer);
-    infile.close();
-
+    read_file(PROV_DICTS_FILE, buffer);
     data = split(buffer, DICT_END);
     assert(data.size() == 5);
 
@@ -23,13 +18,9 @@ void construct_prov_dicts() {
 }
 
 void construct_identifiers_dict() {
-    ifstream infile;
     string buffer;
 
-    infile.open(IDENTIFIERS_FILE, ios::in);
-    assert(infile.is_open());
-    getline(infile, buffer);
-    infile.close();
+    read_file(IDENTIFIERS_FILE, buffer);
 
     string substr = buffer.substr(0, 32);
     string rest = buffer.substr(32);
@@ -47,7 +38,7 @@ void construct_identifiers_dict() {
 void construct_metadata_dict(string& buffer) {
     BitSet bs(buffer); 
     size_t total_size, cur_pos, val_size;
-    unsigned char key, encoded_val, typ;
+    unsigned char key, encoded_val;
     string str_val;
 
     size_t num_equal_keys, num_encoded_keys, num_other_keys;
@@ -72,7 +63,7 @@ void construct_metadata_dict(string& buffer) {
             bs.get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
             
-            // we encode the cf:type as an integer if it is a node
+            // we encode cf:type as an integer if it is a node
             bs.get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
             if (key_dict[key] == "cf:type" && (default_data != &default_relation_data)) {
                 (*default_data)[key] = node_types_dict[encoded_val];
@@ -88,15 +79,87 @@ void construct_metadata_dict(string& buffer) {
             
             bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
-            
+         
             bs.get_bits_as_str(str_val, val_size, cur_pos);
             cur_pos += val_size;
             (*default_data)[key] = str_val;
         }
     }
 
-    // go through the rest of the string, creating a map from intid to string of bits
+    // go through all node data, creating a map from intid to index of string 
     for (size_t i = 0; i < num_nodes; ++i) {
+        id_to_data_index_dict[i] = cur_pos;
+        
+        cur_pos += typ_bits;
+        for (size_t* key : num_key_types) {
+            bs.get_bits<size_t>(*key, key_bits, cur_pos);
+            cur_pos += key_bits;
+        }
+        cur_pos += key_bits*num_equal_keys;
+        cur_pos += (key_bits+val_bits)*num_encoded_keys;
+        for (size_t i = 0; i < num_other_keys; ++i) {
+            cur_pos += key_bits;
+            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+            cur_pos += MAX_STRING_SIZE_BITS;
+            cur_pos += val_size;
+        }
+    }
+    // go through all relation data, creating a map from intid to index of string 
+    int relation_id;
+    while(cur_pos < total_size) {
+        bs.get_bits<int>(relation_id, 2*id_bits, cur_pos);
+        cur_pos += 2*id_bits;
+
+        id_to_data_index_dict[relation_id] = cur_pos;
+        
+        cur_pos += typ_bits;
+        for (size_t* key : num_key_types) {
+            bs.get_bits<size_t>(*key, key_bits, cur_pos);
+            cur_pos += key_bits;
+        }
+        cur_pos += key_bits*num_equal_keys;
+        cur_pos += (key_bits+val_bits)*num_encoded_keys;
+        for (size_t i = 0; i < num_other_keys; ++i) {
+            cur_pos += key_bits;
+            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+            cur_pos += MAX_STRING_SIZE_BITS;
+            cur_pos += val_size;
+        }
+    }
+
+    assert(cur_pos == total_size);
+}
+
+string decode_from_default(string& identifier, vector<string>& data) {
+    (void)data;
+    return identifier;
+}
+
+string get_metadata(string identifier) {
+    return identifier;
+}
+
+int main(int argc, char *argv[]) {
+    string buffer;
+
+    if (argc == 1) {
+        read_file("compressed_metadata.txt", buffer);
+    } else if (argc == 2) {
+        read_file(argv[1], buffer);
+    } else {
+        cout << "Usage: ./query [infile]" << endl;
+        return 1;
+    }
+
+    construct_prov_dicts();
+    construct_identifiers_dict();
+    construct_metadata_dict(buffer);
+    return 0;
+}
+
+    /*
+    // do this later for caching
+    {
         bs.get_bits<unsigned char>(typ, typ_bits, cur_pos);
         cur_pos += typ_bits;
 
@@ -125,6 +188,7 @@ void construct_metadata_dict(string& buffer) {
             cur_pos += key_bits;
             bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
+            cout << "BLAH" << val_size << endl;
             bs.get_bits_as_str(str_val, val_size, cur_pos);
             cur_pos += val_size;
             m->add_other_key_val(key, str_val);
@@ -132,40 +196,5 @@ void construct_metadata_dict(string& buffer) {
 
         id_to_metadata_dict[i] = m;
     }
-    //assert(cur_pos == total_size);
-}
+    */
 
-string decode_from_default(string& identifier, vector<string>& data) {
-    (void)data;
-    return identifier;
-}
-
-string get_metadata(string identifier) {
-    return identifier;
-}
-
-int main(int argc, char *argv[]) {
-    ifstream infile;
-    string buffer;
-    vector<string> data;
-
-    if (argc == 1) {
-        infile.open("compressed_metadata.txt", ios::in);
-    } else if (argc == 2) {
-        infile.open(argv[1], ios::in);
-    } else {
-        cout << "Usage: ./query [infile]" << endl;
-        return 1;
-    }
-    if (!infile.is_open()) {
-        cout << "Failed to open input file" << endl;
-        return 1;
-    }
-    getline(infile, buffer);
-    infile.close();
-
-    construct_prov_dicts();
-    construct_identifiers_dict();
-    construct_metadata_dict(buffer);
-    return 0;
-}

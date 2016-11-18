@@ -30,6 +30,7 @@ vector<string> split(string& str, string& delim);
 string remove_char(string str, char ch);
 
 /* DICTIONARY HELPERS */
+string read_file(string filename, string& str);
 template <typename K, typename V>
 void print_dict(map<K, V>& dict);
 template <typename K>
@@ -86,12 +87,10 @@ public:
 
         val = 0;
         for (size_t i = 0; i < num_bits; ++i) {
-            //cout << pos+i << " " << get_bit(pos+i) << endl;
             val |= get_bit(pos+i);
             if (i != num_bits-1)
                 val <<= 1;
         }
-        //cout << bitset<32>(val).to_string() << endl;
     }
 
     // specialize for strings

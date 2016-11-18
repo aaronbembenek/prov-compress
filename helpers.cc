@@ -1,5 +1,8 @@
 #include "helpers.hh"
 
+map<string, int> id2intid;
+map<int, string> intid2id;
+
 size_t nbits_for_int(int i) {
     assert(i >= 0);
     return floor(log(max(i, 1))/log(2)) + 1;

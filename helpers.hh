@@ -18,8 +18,8 @@
 using namespace std;
 
 // Dictionaries for identifiers
-map<string, int> id2intid;
-map<int, string> intid2id;
+extern map<string, int> id2intid;
+extern map<int, string> intid2id;
 
 /* BITSTR HELPERS */
 size_t nbits_for_int(int i);

@@ -1,14 +1,15 @@
 CC = gcc
 CXX = g++
-CXXFLAGS =-std=gnu++0x -g -W -Wall -O3
-DEPS = "helpers.hh" "query.hh"
-OBJ = helpers.o metadata.o query.o
+CXXFLAGS =-std=gnu++0x -g
+OPTFLAGS = -W -Wall -O3
+OBJS = helpers.o
+DEPS = $(OBJS) 
 
-%.o: %.c $(DEPS)
-	$(CXX) -c -o $@ $< $(CXXFLAGS)
+%.o: %.cc 
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -c -o $@ $<
 
-query: $(OBJ)
-	gcc -o $@ $^ $(CXXFLAGS)
+query: query.o $(DEPS)
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $< $(OBJS)
 
 clean:
-	rm -f query.o
+	rm -f query.o helpers.o query

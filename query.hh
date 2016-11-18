@@ -2,6 +2,7 @@
 #define QUERY_H
 
 #include "helpers.hh"
+#include "metadata.hh"
 
 /*
     SUPPORTED QUERIES:
@@ -13,7 +14,6 @@
     metadata(identifier) => return (JSON output?) of identifier
  */
 
-class Metadata;
 class Querier;
 class CompressedQuerier;
 

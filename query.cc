@@ -28,10 +28,11 @@ void construct_identifiers_dict() {
     bs.get_bits(num_nodes, 32, 0);
     id_bits = nbits_for_int(num_nodes);
 
-    auto ids = split(rest, ',');
-    for (size_t i = 0; i < ids.size(); ++i) {
-        intid_to_id_dict[i] = ids[i]; 
-        id_to_intid_dict[ids[i]] = i; 
+    identifiers = split(rest, ',');
+    for (size_t i = 0; i < num_nodes; ++i) {
+        // not yet set for relations
+        intid_to_id_dict[i] = identifiers[i]; 
+        id_to_intid_dict[identifiers[i]] = i; 
     }
 }
 
@@ -106,11 +107,15 @@ void construct_metadata_dict(string& buffer) {
     }
     // go through all relation data, creating a map from intid to index of string 
     int relation_id;
+    int num_relations = 0;
     while(cur_pos < total_size) {
         metadata_bs->get_bits<int>(relation_id, 2*id_bits, cur_pos);
         cur_pos += 2*id_bits;
 
         intid_to_data_index_dict[relation_id] = cur_pos;
+        id_to_intid_dict[identifiers[num_nodes + num_relations]] = relation_id;
+        intid_to_id_dict[relation_id] = identifiers[num_nodes + num_relations];
+        num_relations++;
         
         cur_pos += typ_bits;
         for (size_t* key : num_key_types) {
@@ -133,24 +138,30 @@ void construct_metadata_dict(string& buffer) {
 map<string, string> get_metadata(string identifier) {
     map<string, string> metadata;
     size_t cur_pos, val_size;
-    unsigned char key, encoded_val, typ, val;
+    unsigned char key, encoded_val, typ;
     string str_val;
 
     size_t num_equal_keys, num_encoded_keys, num_other_keys;
     vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys};
-    
 
-    cur_pos = intid_to_data_index_dict[id_to_intid_dict[identifier]];
+    //assert(id_to_intid_dict.count();
+    auto my_intid = id_to_intid_dict.find(identifier);
+    if (my_intid == id_to_intid_dict.end()) {
+        return metadata;
+    }
+
+    cur_pos = intid_to_data_index_dict[my_intid->second];
 
     // get type
     metadata_bs->get_bits<unsigned char>(typ, typ_bits, cur_pos);
     cur_pos += typ_bits;
     metadata["typ"] = typ_dict[typ];
+    bool is_relation = (typ_dict[typ] == "relation");
 
     // get sender/receiver if a relation
-    if (typ_dict[typ] == "relation") {
-        metadata["cf:sender"] = id_to_intid_dict[identifier] >> id_bits;
-        metadata["cf:receiver"] = id_to_intid_dict[identifier] & ((1 << id_bits) - 1); 
+    if (is_relation) {
+        metadata["cf:sender"] = intid_to_id_dict[my_intid->second >> id_bits];
+        metadata["cf:receiver"] = intid_to_id_dict[my_intid->second & ((1 << id_bits) - 1)]; 
     }
 
     // get the number of each type of key
@@ -163,11 +174,11 @@ map<string, string> get_metadata(string identifier) {
     for (size_t i = 0; i < num_equal_keys; ++i) {
         metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
         cur_pos += key_bits;
-        if (typ_dict[typ] == "relation") {
+        if (is_relation) {
             metadata[key_dict[key]] = default_relation_data[key_dict[key]];
         } else {
             // we can't encode because we don't know if this node is relative or not
-            metadata[key_dict[key]] = "equal";
+            metadata[key_dict[key]] = "=";
         }
     }
 
@@ -177,10 +188,12 @@ map<string, string> get_metadata(string identifier) {
         cur_pos += key_bits;
         metadata_bs->get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
         cur_pos += val_bits;
-        if (key_dict[key] == "cf:type" && typ_dict[typ] != "relation") 
-            metadata[key_dict[key]] = node_types_dict[val];
-        else
-            metadata[key_dict[key]] = val_dict[val];
+        if (key_dict[key] == "cf:type" && !is_relation) {
+            metadata[key_dict[key]] = node_types_dict[encoded_val];
+        }
+        else {
+            metadata[key_dict[key]] = val_dict[encoded_val];
+        }
     }
 
     // nonencoded values
@@ -195,18 +208,18 @@ map<string, string> get_metadata(string identifier) {
         if (key_dict[key] == "prov:label"):
             str_val.substr(0, label_bits)
         */
-        metadata[key_dict[key]] == str_val; 
+        metadata[key_dict[key]] = str_val; 
     }
 
     // we're done if this was a relation
-    if (typ_dict[typ] == "relation") {
+    if (is_relation) {
         return metadata;
     }
 
     // else we need to encode equal keys in relation to another node or default
     auto relative = metadata.find(RELATIVE_NODE);
     map<string, string> relative_metadata;
-    if (relative != metadata.end() && relative->second != "equal") {
+    if (relative != metadata.end() && relative->second != "=" && stoi(relative->second) != my_intid->second) {
         // the node was encoded in relation to another node
         relative_metadata = get_metadata(intid_to_id_dict[stoi(relative->second)]);
     } else {
@@ -214,8 +227,8 @@ map<string, string> get_metadata(string identifier) {
         relative_metadata = default_node_data; 
     }
     for (auto kv: metadata) {
-        if (kv.second == "equal") {
-            kv.second = default_node_data[kv.first];
+        if (kv.second == "=") {
+            metadata[kv.first] = default_node_data[kv.first];
         }
     }
     return metadata;
@@ -236,5 +249,14 @@ int main(int argc, char *argv[]) {
     construct_prov_dicts();
     construct_identifiers_dict();
     construct_metadata_dict(buffer);
+    vector<string> identifiers = {
+        "cf:AgAAAACI//9rAAAAAAAAABMiaFq3/swrAAAAAAAAAAA=",
+        "cf:BAAAAAAAAAAj+wYAAAAAABMiaFq3/swrAQAAAAAAAAA=", 
+        "dummy"
+    };
+    for (auto id : identifiers) {
+        auto metadata = get_metadata(id);
+        print_dict(metadata);
+    }
     return 0;
 }

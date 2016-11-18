@@ -18,6 +18,7 @@ from collections import defaultdict
 TODO
     - Time compression?
     - Use byte encoding instead of bitstring
+    - Compress numbers (flag with one bit)
 '''
 
 class Encoder():
@@ -126,7 +127,7 @@ class Encoder():
                         # compress with reference to this self.metadata
                         # Note that node metadata requires unpacking the relative metadata, then
                         # calculate the node's data in reference to that relative
-                        default_data = id_dict[cf_id]
+                        default_data = id_dict[cf_id][1]
                     else: 
                         default_data = default_node_data
                         # store the original metadata of the first time we see a camflow ID

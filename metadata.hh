@@ -1,6 +1,14 @@
+#ifndef META_H
+#define META_H
+
 #include "helpers.hh"
 
-class Metadata {
+class MetadataInterface {
+    virtual map<string, string> get_metadata(string& identifier) = 0;
+};
+class Metadata;
+
+class Metadata : MetadataInterface {
     static const string PROV_DICTS_FILE;
     static const string IDENTIFIERS_FILE;
     static const string METADATA_FILE;
@@ -175,7 +183,7 @@ public:
         assert(cur_pos == total_size);
     }
 
-    map<string, string> get_metadata(string& identifier) {
+    map<string, string> get_metadata(string& identifier) override {
         map<string, string> metadata;
         size_t cur_pos, val_size;
         unsigned char key, encoded_val, typ;
@@ -312,3 +320,5 @@ const string Metadata::METADATA_FILE = "compressed_metadata.txt";
 const string Metadata::RELATIVE_NODE = "@";
 const string Metadata::DEFAULT_NODE_KEY = "-1";
 const string Metadata::DEFAULT_RELATION_KEY = "-2";
+
+#endif

@@ -15,12 +15,13 @@ public:
 // rename this...
 class CompressedQuerier : Querier {
 public:
-    CompressedQuerier(string& metafile, string& graphfile) : metadata_(metafile) {
+    CompressedQuerier(string& metafile, string& graphfile) {
         (void)(graphfile);
+        metadata_ = new Metadata(metafile);
     }
 
     map<string, string> get_metadata(string& identifier) override {
-        return metadata_.get_metadata(identifier);
+        return metadata_->get_metadata(identifier);
     }
     // TODO change signatures to return graph
     void get_all_ancestors(string& identifier) override {
@@ -44,29 +45,29 @@ public:
     }
     
 private:
-    Metadata metadata_;
+    Metadata* metadata_;
 };
 
 int main(int argc, char *argv[]) {
-    string infile;
+    string metafile, graphfile;
 
     if (argc == 1) {
-        infile = "compressed_metadata.txt";
+        metafile = "compressed_metadata.txt";
     } else if (argc == 2) {
-        infile = argv[1];
+        metafile = argv[1];
     } else {
-        cout << "Usage: ./query [infile]" << endl;
+        cout << "Usage: ./query [metafile]" << endl;
         return 1;
     }
 
-    Metadata m(infile);
+    CompressedQuerier q(metafile, graphfile);
     vector<string> identifiers = {
         "cf:AgAAAACI//9rAAAAAAAAABMiaFq3/swrAAAAAAAAAAA=",
         "cf:BAAAAAAAAAAj+wYAAAAAABMiaFq3/swrAQAAAAAAAAA=", 
         "dummy"
     };
     for (auto id : identifiers) {
-        auto metadata = m.get_metadata(id);
+        auto metadata = q.get_metadata(id);
         print_dict(metadata);
     }
     return 0;

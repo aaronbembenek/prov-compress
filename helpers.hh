@@ -14,9 +14,6 @@
 
 #define DICT_BEGIN '{'
 #define DICT_END '}'
-#define RELATIVE_NODE '@'
-#define DEFAULT_NODE_KEY "-1"
-#define DEFAULT_RELATION_KEY "-2"
 
 using namespace std;
 

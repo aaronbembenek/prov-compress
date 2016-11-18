@@ -130,7 +130,7 @@ class Encoder():
                     else: 
                         default_data = default_node_data
                         # store the original metadata of the first time we see a camflow ID
-                        id_dict[cf_id] = metadata.data
+                        id_dict[cf_id] = (identifier, metadata.data)
             for key, val in metadata.data.items():
                 # set the default node if there have been no nodes 
                 # with this key compressed so far
@@ -144,7 +144,7 @@ class Encoder():
             # add a marker in the metadata that this is encoded relative 
             # to another node with the same cf_id
             if metadata.typ != 'relation' and cf_id in id_dict and cf_id != None:
-                metadata.data[RELATIVE_NODE] = cf_id 
+                metadata.data[RELATIVE_NODE] = self.iti[id_dict[cf_id][0]]
         
         # add defaults to the metadata dictionary under default 
         self.metadata[Encoder.DEFAULT_NODE_KEY] = default_node_data
@@ -160,10 +160,12 @@ class Encoder():
                 equal_keys.append(self.keys_dict[key])
                 continue
             # encode the value here
-            # replace any labels
+            '''
+            TODO replace any labels
             if key == 'prov:label':
                 for label in self.labels_dict:
                     val = val.replace(label, self.labels_dict[label])
+            '''
             # replace any common strings
             if isinstance(val, str) and val in self.vals_dict:
                 encoded_keys.append(self.keys_dict[key]+self.vals_dict[val])

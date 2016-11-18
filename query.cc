@@ -36,7 +36,7 @@ void construct_identifiers_dict() {
 }
 
 void construct_metadata_dict(string& buffer) {
-    BitSet bs(buffer); 
+    metadata_bs = new BitSet(buffer); 
     size_t total_size, cur_pos, val_size;
     unsigned char key, encoded_val;
     string str_val;
@@ -46,60 +46,60 @@ void construct_metadata_dict(string& buffer) {
 
     // get the total size of the data
     cur_pos = 0;
-    bs.get_bits<size_t>(total_size, 32, cur_pos);
+    metadata_bs->get_bits<size_t>(total_size, 32, cur_pos);
     cur_pos += 32;
 
     // get defaults
-    vector<map<unsigned char, string>*> default_data_dicts = {&default_node_data, &default_relation_data};
-    for (map<unsigned char, string>* default_data: default_data_dicts) {
+    vector<map<string, string>*> default_data_dicts = {&default_node_data, &default_relation_data};
+    for (map<string, string>* default_data: default_data_dicts) {
         for (size_t* key : num_key_types) {
-            bs.get_bits<size_t>(*key, key_bits, cur_pos);
+            metadata_bs->get_bits<size_t>(*key, key_bits, cur_pos);
             cur_pos += key_bits;
         }
         // there should be no keys equal to the default since we're encoding the default
         assert(num_equal_keys == 0);
         // deal with encoded values
         for (size_t i = 0; i < num_encoded_keys; ++i) {
-            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
+            metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
             
             // we encode cf:type as an integer if it is a node
-            bs.get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
+            metadata_bs->get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
             if (key_dict[key] == "cf:type" && (default_data != &default_relation_data)) {
-                (*default_data)[key] = node_types_dict[encoded_val];
+                (*default_data)[key_dict[key]] = node_types_dict[encoded_val];
             } else {
-                (*default_data)[key] = val_dict[encoded_val];
+                (*default_data)[key_dict[key]] = val_dict[encoded_val];
             }
             cur_pos += val_bits;
         }
         // nonencoded values
         for (size_t i = 0; i < num_other_keys; ++i) {
-            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
+            metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
             
-            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+            metadata_bs->get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
          
-            bs.get_bits_as_str(str_val, val_size, cur_pos);
+            metadata_bs->get_bits_as_str(str_val, val_size, cur_pos);
             cur_pos += val_size;
-            (*default_data)[key] = str_val;
+            (*default_data)[key_dict[key]] = str_val;
         }
     }
 
     // go through all node data, creating a map from intid to index of string 
     for (size_t i = 0; i < num_nodes; ++i) {
-        id_to_data_index_dict[i] = cur_pos;
+        intid_to_data_index_dict[i] = cur_pos;
         
         cur_pos += typ_bits;
         for (size_t* key : num_key_types) {
-            bs.get_bits<size_t>(*key, key_bits, cur_pos);
+            metadata_bs->get_bits<size_t>(*key, key_bits, cur_pos);
             cur_pos += key_bits;
         }
         cur_pos += key_bits*num_equal_keys;
         cur_pos += (key_bits+val_bits)*num_encoded_keys;
         for (size_t i = 0; i < num_other_keys; ++i) {
             cur_pos += key_bits;
-            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+            metadata_bs->get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
             cur_pos += val_size;
         }
@@ -107,21 +107,21 @@ void construct_metadata_dict(string& buffer) {
     // go through all relation data, creating a map from intid to index of string 
     int relation_id;
     while(cur_pos < total_size) {
-        bs.get_bits<int>(relation_id, 2*id_bits, cur_pos);
+        metadata_bs->get_bits<int>(relation_id, 2*id_bits, cur_pos);
         cur_pos += 2*id_bits;
 
-        id_to_data_index_dict[relation_id] = cur_pos;
+        intid_to_data_index_dict[relation_id] = cur_pos;
         
         cur_pos += typ_bits;
         for (size_t* key : num_key_types) {
-            bs.get_bits<size_t>(*key, key_bits, cur_pos);
+            metadata_bs->get_bits<size_t>(*key, key_bits, cur_pos);
             cur_pos += key_bits;
         }
         cur_pos += key_bits*num_equal_keys;
         cur_pos += (key_bits+val_bits)*num_encoded_keys;
         for (size_t i = 0; i < num_other_keys; ++i) {
             cur_pos += key_bits;
-            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+            metadata_bs->get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
             cur_pos += MAX_STRING_SIZE_BITS;
             cur_pos += val_size;
         }
@@ -130,13 +130,95 @@ void construct_metadata_dict(string& buffer) {
     assert(cur_pos == total_size);
 }
 
-string decode_from_default(string& identifier, vector<string>& data) {
-    (void)data;
-    return identifier;
-}
+map<string, string> get_metadata(string identifier) {
+    map<string, string> metadata;
+    size_t cur_pos, val_size;
+    unsigned char key, encoded_val, typ, val;
+    string str_val;
 
-string get_metadata(string identifier) {
-    return identifier;
+    size_t num_equal_keys, num_encoded_keys, num_other_keys;
+    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys};
+    
+
+    cur_pos = intid_to_data_index_dict[id_to_intid_dict[identifier]];
+
+    // get type
+    metadata_bs->get_bits<unsigned char>(typ, typ_bits, cur_pos);
+    cur_pos += typ_bits;
+    metadata["typ"] = typ_dict[typ];
+
+    // get sender/receiver if a relation
+    if (typ_dict[typ] == "relation") {
+        metadata["cf:sender"] = id_to_intid_dict[identifier] >> id_bits;
+        metadata["cf:receiver"] = id_to_intid_dict[identifier] & ((1 << id_bits) - 1); 
+    }
+
+    // get the number of each type of key
+    for (size_t* key : num_key_types) {
+        metadata_bs->get_bits<size_t>(*key, key_bits, cur_pos);
+        cur_pos += key_bits;
+    }
+
+    // add equal keys
+    for (size_t i = 0; i < num_equal_keys; ++i) {
+        metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
+        cur_pos += key_bits;
+        if (typ_dict[typ] == "relation") {
+            metadata[key_dict[key]] = default_relation_data[key_dict[key]];
+        } else {
+            // we can't encode because we don't know if this node is relative or not
+            metadata[key_dict[key]] = "equal";
+        }
+    }
+
+    // unencode encoded values
+    for (size_t i = 0; i < num_encoded_keys; ++i) {
+        metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
+        cur_pos += key_bits;
+        metadata_bs->get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
+        cur_pos += val_bits;
+        if (key_dict[key] == "cf:type" && typ_dict[typ] != "relation") 
+            metadata[key_dict[key]] = node_types_dict[val];
+        else
+            metadata[key_dict[key]] = val_dict[val];
+    }
+
+    // nonencoded values
+    for (size_t i = 0; i < num_other_keys; ++i) {
+        metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
+        cur_pos += key_bits;
+        metadata_bs->get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
+        cur_pos += MAX_STRING_SIZE_BITS;
+        metadata_bs->get_bits_as_str(str_val, val_size, cur_pos);
+        cur_pos += val_size;
+        /* TODO
+        if (key_dict[key] == "prov:label"):
+            str_val.substr(0, label_bits)
+        */
+        metadata[key_dict[key]] == str_val; 
+    }
+
+    // we're done if this was a relation
+    if (typ_dict[typ] == "relation") {
+        return metadata;
+    }
+
+    // else we need to encode equal keys in relation to another node or default
+    auto relative = metadata.find(RELATIVE_NODE);
+    map<string, string> relative_metadata;
+    if (relative != metadata.end() && relative->second != "equal") {
+        // the node was encoded in relation to another node
+        relative_metadata = get_metadata(intid_to_id_dict[stoi(relative->second)]);
+    } else {
+        // the node was encoded in relation to the default data
+        relative_metadata = default_node_data; 
+    }
+    for (auto kv: metadata) {
+        if (kv.second == "equal") {
+            kv.second = default_node_data[kv.first];
+        }
+    }
+    return metadata;
 }
 
 int main(int argc, char *argv[]) {
@@ -156,45 +238,3 @@ int main(int argc, char *argv[]) {
     construct_metadata_dict(buffer);
     return 0;
 }
-
-    /*
-    // do this later for caching
-    {
-        bs.get_bits<unsigned char>(typ, typ_bits, cur_pos);
-        cur_pos += typ_bits;
-
-        Metadata* m = new Metadata(typ);
-
-        for (size_t* key : num_key_types) {
-            bs.get_bits<size_t>(*key, key_bits, cur_pos);
-            cur_pos += key_bits;
-        }
-
-        for (size_t i = 0; i < num_equal_keys; ++i) {
-            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
-            cur_pos += key_bits;
-            m->add_equal_key(key);
-        }
-        for (size_t i = 0; i < num_other_keys; ++i) {
-            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
-            cur_pos += key_bits;
-            bs.get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
-            cur_pos += val_bits;
-            m->add_encoded_key_val(key, encoded_val);
-        }
-        // nonencoded values
-        for (size_t i = 0; i < num_other_keys; ++i) {
-            bs.get_bits<unsigned char>(key, key_bits, cur_pos);
-            cur_pos += key_bits;
-            bs.get_bits<size_t>(val_size, MAX_STRING_SIZE_BITS, cur_pos);
-            cur_pos += MAX_STRING_SIZE_BITS;
-            cout << "BLAH" << val_size << endl;
-            bs.get_bits_as_str(str_val, val_size, cur_pos);
-            cur_pos += val_size;
-            m->add_other_key_val(key, str_val);
-        }
-
-        id_to_metadata_dict[i] = m;
-    }
-    */
-

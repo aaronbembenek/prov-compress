@@ -27,8 +27,9 @@ Options:\n\
  -h, --help\n\
  -c, --compressed, run queries on compressed data\n\
  --cmetafile=metafile (default: %s)\n\
- --cgraphfile=graphfile (default: %s)\n",
-    metafile.c_str(), graphfile.c_str());
+ --cgraphfile=graphfile (default: %s)\n\
+ --auditfile=auditfile(default: %s)\n",
+    metafile.c_str(), graphfile.c_str(), auditfile.c_str());
   exit(1);
 }
 
@@ -54,6 +55,9 @@ int main(int argc, char *argv[]) {
         break;
     case opt_graphfile:
         graphfile = clp->val.s;
+        break;
+    case opt_auditfile:
+        auditfile = clp->val.s;
         break;
     default:
         help();

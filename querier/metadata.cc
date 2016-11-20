@@ -1,17 +1,70 @@
 #include "metadata.hh"
+#include "json/json.h"
+
 
 /* DUMMY IMPLEMENTATION */
 DummyMetadata::DummyMetadata(string& infile) {
+    Json::Reader reader;
+    Json::FastWriter fastWriter;
+    Json::Value root;
+    Json::Value json_typ;
+    size_t pos;
 
+    ifstream input(infile);
+    for (string line; getline(input, line);) {
+        string json;
+        if ((pos = line.find(DICT_BEGIN)) == string::npos) {
+            continue;
+        }
+        json = line.substr(pos);
+        bool parsingSuccessful = reader.parse( json, root );
+        if ( !parsingSuccessful ) {
+            // report to the user the failure and their locations in the document.
+            std::cout  << "Failed to parse configuration\n"
+                       << reader.getFormattedErrorMessages();
+            return;
+        }
+        for (auto typ : typs) {
+            if (typ == "prefix") {
+                continue;
+            }
+            json_typ = root.get(typ, "None");
+            if (json_typ != "None") {
+                auto ids = json_typ.getMemberNames();
+                for (auto id : ids) {
+                    json_typ[id]["typ"] = typ;
+                    id2jsonstr[id] = fastWriter.write(json_typ[id]);
+                }
+            }
+        }
+
+    }
 };
-void DummyMetadata::construct_metadata_dict(string& infile) {
-    return;
-}
 
 map<string, string> DummyMetadata::get_metadata(string& identifier) {
     map<string, string> m;
+    Json::Reader reader;
+    Json::FastWriter fastWriter;
+    Json::Value root;
+
+    if(id2jsonstr.count(identifier) == 0) {
+        return m;
+    }
+
+    bool parsingSuccessful = reader.parse( id2jsonstr[identifier], root );
+    if ( !parsingSuccessful ) {
+        // report to the user the failure and their locations in the document.
+        std::cout  << "Failed to parse configuration\n"
+                   << reader.getFormattedErrorMessages();
+        return m;
+    }
+    auto keys = root.getMemberNames();
+    for (auto k: keys) {
+        m[k] = fastWriter.write(root[k]);
+    }
     return m;
 }
+vector<string> DummyMetadata::typs = {"prefix", "activity", "entity", "relation", "unknown"};
 
 /* COMPRESSED IMPLEMENTATION */
 CompressedMetadata::CompressedMetadata(string& infile) {

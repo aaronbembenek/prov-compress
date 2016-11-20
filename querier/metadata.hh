@@ -8,12 +8,12 @@ class MetadataInterface {
 };
 
 class DummyMetadata : MetadataInterface {
+    static vector<string> typs;
 private:
     map<string, string> id2jsonstr;
 
 public:
     DummyMetadata(string& infile);
-    void construct_metadata_dict(string& infile);
     map<string, string> get_metadata(string& identifier) override;
 };
 

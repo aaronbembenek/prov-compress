@@ -96,7 +96,7 @@ class Encoder():
             f.write(str(self.typs_dict))
             f.write(str(self.node_types_dict))
 
-
+class CompressionEncoder(Encoder):
     def prepare_metadata_json(self):
         ''' 
             - reference encodes metadata JSON with corresponding defaults
@@ -227,7 +227,7 @@ class Encoder():
         s = util.int2bitstr(len(entry_data) + len(default_data) + 32, 32) + default_data + entry_data
         return s
 
-    def compress_metadata(self):
+    def compress_metadata(self, outfile):
         self.prepare_metadata_json()
-        with open('compressed_metadata.txt', 'wb') as f:
+        with open(outfile, 'wb') as f:
             bitstring.BitArray(bin=self.encode_json()).tofile(f)

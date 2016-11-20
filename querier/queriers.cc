@@ -6,7 +6,6 @@
 DummyQuerier::DummyQuerier(string& auditfile) {
     metadata_ = new DummyMetadata(auditfile);
 }
-
 map<string, string> DummyQuerier::get_metadata(string& identifier) {
     return metadata_->get_metadata(identifier);
 }

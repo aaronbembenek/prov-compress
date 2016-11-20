@@ -7,7 +7,18 @@ class MetadataInterface {
     virtual map<string, string> get_metadata(string& identifier) = 0;
 };
 
-class Metadata : MetadataInterface {
+class DummyMetadata : MetadataInterface {
+private:
+    map<string, string> id2jsonstr;
+
+public:
+    DummyMetadata(string& infile);
+    void construct_metadata_dict(string& infile);
+    map<string, string> get_metadata(string& identifier) override;
+};
+
+
+class CompressedMetadata : MetadataInterface {
     static const string PROV_DICTS_FILE;
     static const string IDENTIFIERS_FILE;
     static const string METADATA_FILE;
@@ -39,11 +50,11 @@ private:
     size_t num_nodes;
 
 public:
-    Metadata(string& infile);
+    CompressedMetadata(string& infile);
     void construct_identifiers_dict();
     void construct_prov_dicts();
     void construct_metadata_dict(string& infile);
-    map<string, string> get_metadata(string& identifier);
+    map<string, string> get_metadata(string& identifier) override;
 };
 
 /*

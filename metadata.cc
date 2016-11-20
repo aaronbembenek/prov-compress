@@ -1,12 +1,26 @@
 #include "metadata.hh"
 
-Metadata::Metadata(string& infile) {
+/* DUMMY IMPLEMENTATION */
+DummyMetadata::DummyMetadata(string& infile) {
+
+};
+void DummyMetadata::construct_metadata_dict(string& infile) {
+    return;
+}
+
+map<string, string> DummyMetadata::get_metadata(string& identifier) {
+    map<string, string> m;
+    return m;
+}
+
+/* COMPRESSED IMPLEMENTATION */
+CompressedMetadata::CompressedMetadata(string& infile) {
     construct_identifiers_dict();
     construct_prov_dicts();
     construct_metadata_dict(infile);
 }
 
-void Metadata::construct_identifiers_dict() {
+void CompressedMetadata::construct_identifiers_dict() {
     string buffer;
 
     read_file(IDENTIFIERS_FILE, buffer);
@@ -25,7 +39,7 @@ void Metadata::construct_identifiers_dict() {
     }
 }
 
-void Metadata::construct_prov_dicts() {
+void CompressedMetadata::construct_prov_dicts() {
     string buffer;
     vector<string> data;
 
@@ -42,7 +56,7 @@ void Metadata::construct_prov_dicts() {
     }
 }
 
-void Metadata::construct_metadata_dict(string& infile) {
+void CompressedMetadata::construct_metadata_dict(string& infile) {
     string buffer;
     read_file(infile, buffer);
     metadata_bs = new BitSet(buffer); 
@@ -143,7 +157,7 @@ void Metadata::construct_metadata_dict(string& infile) {
     assert(cur_pos == total_size);
 }
 
-map<string, string> Metadata::get_metadata(string& identifier) {
+map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     map<string, string> metadata;
     size_t cur_pos, val_size;
     unsigned char key, encoded_val, typ;
@@ -242,11 +256,9 @@ map<string, string> Metadata::get_metadata(string& identifier) {
     return metadata;
 }
 
-const string Metadata::PROV_DICTS_FILE = "prov_data_dicts.txt";
-const string Metadata::IDENTIFIERS_FILE = "identifiers.txt";
-const string Metadata::METADATA_FILE = "compressed_metadata.txt";
-const string Metadata::RELATIVE_NODE = "@";
-const string Metadata::DEFAULT_NODE_KEY = "-1";
-const string Metadata::DEFAULT_RELATION_KEY = "-2";
-
-
+const string CompressedMetadata::PROV_DICTS_FILE = "prov_data_dicts.txt";
+const string CompressedMetadata::IDENTIFIERS_FILE = "identifiers.txt";
+const string CompressedMetadata::METADATA_FILE = "compressed_metadata.txt";
+const string CompressedMetadata::RELATIVE_NODE = "@";
+const string CompressedMetadata::DEFAULT_NODE_KEY = "-1";
+const string CompressedMetadata::DEFAULT_RELATION_KEY = "-2";

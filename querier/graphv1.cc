@@ -11,12 +11,14 @@ GraphV1::GraphV1(string& compressed) : data(compressed) {
     size_t nbitsForIndexEntry;
     pos += data.get_bits<size_t>(nbitsForIndexEntry, 8, pos);
     pos += data.get_bits<size_t>(indexLength, 8, pos);
+    indexLength += 1;
 
     // Create index from node ID into node data.
     index = new size_t[indexLength];
-    for (size_t i = 0; i < indexLength; ++i) {
-        data.get_bits<size_t>(index[i], nbitsForIndexEntry, pos);
-        pos += nbitsForIndexEntry;
+    index[0] = 0;
+    for (size_t i = 1; i < indexLength; ++i) {
+        pos += data.get_bits<size_t>(index[i], nbitsForIndexEntry, pos);
+        index[i] += index[i - 1];
     }
     basePos = ((pos + 7) >> 3) << 3;
 

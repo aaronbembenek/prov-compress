@@ -15,7 +15,7 @@ DEPS = $(OBJS)
 query: query.o $(DEPS)
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $< $(OBJS)
 
-graph:
+graph: graph.cc graphv1.cc helpers.cc
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ graph.cc graphv1.cc helpers.cc
 
 clean:

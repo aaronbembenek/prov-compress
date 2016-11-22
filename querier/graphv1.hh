@@ -11,6 +11,7 @@ class GraphV1 : public Graph {
         GraphV1(std::string&);
         ~GraphV1();
         std::vector<NodeId> getOutgoingEdges(NodeId);
+        size_t getNodeCount();
     private:
         BitSet data;
         size_t* index;

@@ -5,24 +5,23 @@
 
 using namespace std;
 
-// XXX Currently untested...
-vector<NodeId> Graph::getAllDescendants(NodeId node) {
-    vector<NodeId> neighbors = getOutgoingEdges(node);
-    queue<NodeId> q;
-    set<NodeId> visited;
-    for (NodeId neighbor : neighbors) {
+vector<Node_Id> Graph::get_all_descendants(Node_Id node) {
+    vector<Node_Id> neighbors = get_outgoing_edges(node);
+    queue<Node_Id> q;
+    set<Node_Id> visited;
+    for (Node_Id neighbor : neighbors) {
         q.push(neighbor);
         visited.insert(neighbor);
     }
     while (!q.empty()) {
-        NodeId nid = q.front();
+        Node_Id nid = q.front();
         q.pop();
-        for (NodeId nid2 : getOutgoingEdges(nid)) {
+        for (Node_Id nid2 : get_outgoing_edges(nid)) {
             if (!visited.count(nid2)) {
                 visited.insert(nid2);
                 q.push(nid2);
             }
         }
     }
-    return vector<NodeId>(visited.begin(), visited.end());
+    return vector<Node_Id>(visited.begin(), visited.end());
 }

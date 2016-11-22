@@ -4,13 +4,13 @@
 #include <cstddef>
 #include <vector>
 
-typedef size_t NodeId;
+typedef size_t Node_Id;
 
 class Graph {
     public:
-        virtual std::vector<NodeId> getOutgoingEdges(NodeId) = 0;
-        virtual size_t getNodeCount() = 0;
-        std::vector<NodeId> getAllDescendants(NodeId);
+        virtual std::vector<Node_Id> get_outgoing_edges(Node_Id) = 0;
+        virtual size_t get_node_count() = 0;
+        std::vector<Node_Id> get_all_descendants(Node_Id);
 };
 
 #endif

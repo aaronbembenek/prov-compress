@@ -83,7 +83,7 @@ public:
     }
 
     template <typename T>
-    void get_bits(T& val, size_t num_bits, size_t pos) {
+    size_t get_bits(T& val, size_t num_bits, size_t pos) {
         assert(num_bits <= sizeof(T)*8);
 
         val = 0;
@@ -92,6 +92,8 @@ public:
             if (i != num_bits-1)
                 val <<= 1;
         }
+
+        return num_bits;
     }
 
     // specialize for strings

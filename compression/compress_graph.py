@@ -128,9 +128,10 @@ def main():
         # (all edges point from bottom up)
         g = {1:[0], 0:[4,3], 2:[], 3:[], 4:[2], 5:[4], 6:[7], 7:[]}
         g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
+        metadata = {}
     else:
-        g, _ = pj.json_to_graph_data(sys.argv[1])
-    c = BasicCompressor(preprocess.BfsPreprocessor(g))
+        g, metadata = pj.json_to_graph_data(sys.argv[1])
+    c = BasicCompressor(preprocess.BfsPreprocessor(g, metadata))
     c.compress()
     c.write_to_file("trial")
     print(c.decompress())

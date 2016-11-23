@@ -314,7 +314,9 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     }
     metadata["cf:date"] = "";
     for (size_t i = 0; i < default_date.size(); ++i) {
-        if (i) metadata["cf:date"] += ":";
+        if (i == 3) metadata["cf:date"] += "T";
+        else if (i) metadata["cf:date"] += ":";
+
         auto diff_date = date_diffs.find(i);
         if (diff_date != date_diffs.end()) {
             metadata["cf:date"] += to_string(diff_date->second);

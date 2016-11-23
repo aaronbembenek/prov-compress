@@ -101,10 +101,23 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
                 self.ids[identifier] = ((self.rankings[metadata.data['cf:sender']] << node_bits) 
                                         + self.rankings[metadata.data['cf:receiver']])
         sorted_idents = sorted(self.ids.keys(), key=lambda v: self.ids[v])
+        
+        # reference encoding
+        default = sorted_idents[0]
+        assert(util.nbits_for_int(len(default)) < 8)
+
         with open("identifiers.txt", 'w') as f:
             f.write(len(self.rankings).to_bytes(4, byteorder='big').decode('utf-8'))
+            f.write(len(default).to_bytes(4, byteorder='big').decode('utf-8'))
+            f.write(default)
             for ident in sorted_idents:
-                f.write(','+ident)
+                byts = []
+                for i,ch in enumerate(ident):
+                    if ch != default[i]:
+                        byts.append(chr(i) + ch)
+                f.write(chr(len(byts)))
+                f.write(''.join(byts))
+
         return self.ids
     
     @abc.abstractmethod

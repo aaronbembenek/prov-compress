@@ -103,20 +103,29 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
         sorted_idents = sorted(self.ids.keys(), key=lambda v: self.ids[v])
         
         # reference encoding
+        wbs = util.WriterBitString()
         default = sorted_idents[0]
         assert(util.nbits_for_int(len(default)) < 8)
+        
+        wbs.write_int(len(self.rankings), 32)
+        wbs.write_int(len(default), 32)
+        byts = wbs.to_bytearray()
+        byts += default.encode()
+        for ident in sorted_idents:
+            num_diffs = 0
+            diff_wbs = util.WriterBitString()
+            for i,ch in enumerate(ident):
+                if ch != default[i]:
+                    diff_wbs.write_int(i, 8)
+                    diff_wbs.write_int(ord(ch), 8)
+                    num_diffs += 1
+            len_wbs = util.WriterBitString()
+            len_wbs.write_int(num_diffs, 8)
+            
+            byts += len_wbs.to_bytearray() + diff_wbs.to_bytearray()
 
-        with open("identifiers.txt", 'w') as f:
-            f.write(len(self.rankings).to_bytes(4, byteorder='big').decode('utf-8'))
-            f.write(len(default).to_bytes(4, byteorder='big').decode('utf-8'))
-            f.write(default)
-            for ident in sorted_idents:
-                byts = []
-                for i,ch in enumerate(ident):
-                    if ch != default[i]:
-                        byts.append(chr(i) + ch)
-                f.write(chr(len(byts)))
-                f.write(''.join(byts))
+        with open("identifiers.txt", 'wb') as f:
+            f.write(byts)
 
         return self.ids
     

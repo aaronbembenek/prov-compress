@@ -90,14 +90,13 @@ void CompressedMetadata::construct_identifiers_dict() {
     cur_pos += 32;
 
     bs.get_bits_as_str(default_id, default_len*8, cur_pos);
-    cur_pos += default_len;
+    cur_pos += default_len*8;
 
     size_t offset, num_diffs, id_index = 0;
     char ch;
-    while(cur_pos < buffer.length()) {
+    while(cur_pos < buffer.length()*8) {
         id = default_id;
         bs.get_bits<size_t>(num_diffs, 8, cur_pos);
-        cout << num_diffs << endl;
         cur_pos += 8;
         for (size_t i = 0; i < num_diffs; ++i) {
             bs.get_bits<size_t>(offset, 8, cur_pos);
@@ -105,9 +104,7 @@ void CompressedMetadata::construct_identifiers_dict() {
             bs.get_bits<char>(ch, 8, cur_pos);
             cur_pos += 8;
             id[offset] = ch;
-            cout << offset << " " << ch << endl;
         }
-        cout << default_id << " " << id << endl;
         if (id_index < num_nodes) {
             // not yet set for relations
             intid2id[id_index] = id; 

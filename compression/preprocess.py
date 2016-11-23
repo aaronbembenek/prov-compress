@@ -151,12 +151,13 @@ def main():
         # (all edges point from bottom up)
         gr = {0:[1], 1:[2,3], 2:[4], 3:[], 4:[], 5:[2], 6:[7], 7:[]}
         gr = {v:[pj.Edge(e, None) for e in edges] for v, edges in gr.items()}
+        metadata = []
     else:
-        gr, _ = pj.json_to_graph_data(sys.argv[1])
+        gr, metadata = pj.json_to_graph_data(sys.argv[1])
     transpose = util.transpose_graph(gr)
     for name1, g in [("graph", gr), ("transpose", transpose)]:
         print("<<< " + name1 + " >>>")
-        r = BfsPreprocessor(g)
+        r = BfsPreprocessor(g, metadata)
         for name2, d in [("deltas", r.get_deltas()),
                 ("degrees", r.get_degrees())]:
             print(name2 + ":", d)

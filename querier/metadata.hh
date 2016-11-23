@@ -19,16 +19,17 @@ public:
 
 
 class CompressedMetadata : MetadataInterface {
+private:
+    // hardcoded constants/dictionaries
     static const string PROV_DICTS_FILE;
     static const string IDENTIFIERS_FILE;
-    static const string METADATA_FILE;
     static const string RELATIVE_NODE;
-    static const string DEFAULT_NODE_KEY;
-    static const string DEFAULT_RELATION_KEY;
     static const int MAX_STRING_SIZE_BITS = 10;
 
-private:
-    // Prov strings dictionaries
+    static const vector<size_t> DATE_BITS;
+    static const size_t DATE_TYPE_BITS;
+
+    // prov strings dictionaries (constructed from file)
     map<unsigned char, string>node_types_dict;
     map<unsigned char, string>typ_dict;
     map<unsigned char, string>key_dict;
@@ -39,7 +40,11 @@ private:
 
     map<string, string>default_node_data;
     map<string, string>default_relation_data;
+    vector<size_t>default_date;
     map<int, size_t>intid2dataindex;
+    
+    map<string, int>id2intid;
+    map<int, string>intid2id;
 
     size_t node_type_bits;
     size_t typ_bits;
@@ -47,14 +52,18 @@ private:
     size_t label_bits;
     size_t val_bits;
     size_t id_bits;
+    size_t date_type_bits;
     size_t num_nodes;
 
 public:
     CompressedMetadata(string& infile);
+    map<string, string> get_metadata(string& identifier) override;
+
+private: // helper functions
     void construct_identifiers_dict();
     void construct_prov_dicts();
+    size_t find_next_entry(size_t cur_pos);
     void construct_metadata_dict(string& infile);
-    map<string, string> get_metadata(string& identifier) override;
 };
 
 /*

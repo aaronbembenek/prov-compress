@@ -70,9 +70,8 @@ def json_to_graph_data(infile):
 
 # Returns a string of the graph in DOT format. To view a file in DOT format,
 # use `dot -Tps file.dot -o output.ps`.
-def graph_to_dot(infile):
+def graph_to_dot(infile, iti):
     graph, metadata = json_to_graph_data(infile)
-    iti = identifier_to_int(graph)
     s = ["digraph prov {"]
     for v, edges in graph.items():
         s.extend(['\t"%s" -> "%s" [label="%s"];' % (

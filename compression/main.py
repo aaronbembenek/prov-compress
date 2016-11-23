@@ -22,9 +22,9 @@ def main():
         sys.exit(1)
 
     graph, metadata = pj.json_to_graph_data(infile)
-
     r = BfsPreprocessor(graph, metadata)
-    e = CompressionEncoder(graph, metadata, r.construct_identifier_ids())
+    iti = r.construct_identifier_ids()
+    e = CompressionEncoder(graph, metadata, iti)
     e.compress_metadata(outfile)
 
 if __name__ == "__main__":

@@ -2,8 +2,8 @@
 #include "clp.h"
 
 bool compressed = false;
-string metafile = "compressed_metadata.txt";
-string graphfile = "compressed_graphdata.txt";
+string metafile = "../compression/compressed_metadata.txt";
+string graphfile = "../compression/compressed_graphdata.txt";
 string auditfile = "/tmp/audit.log";
 
 enum {

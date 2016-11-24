@@ -64,14 +64,21 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
                 queue.append(node)
             while queue:
                 v = queue.popleft()
-                degrees.append(len(g[v]))
+                degree = len(g[v])
+                degrees.append(degree)
+                if not degree:
+                    continue
                 for edge in g[v]:
                     e = edge.dest
-                    delta = abs(self.rankings[v] - self.rankings[e])
-                    deltas.append(delta)
+                    #delta = abs(self.rankings[v] - self.rankings[e])
+                    #deltas.append(delta)
                     if e not in visited:
                         visited.add(e)
                         queue.append(e)
+                edges = sorted(self.rankings[e.dest] for e in g[v])
+                deltas.append(edges[0] - self.rankings[v])
+                for i in range(degree - 1):
+                    deltas.append(edges[i + 1] - edges[i])
        
         deltas.sort()
         degrees.sort()
@@ -213,7 +220,7 @@ def main():
         # (all edges point from bottom up)
         gr = {0:[1], 1:[2,3], 2:[4], 3:[], 4:[], 5:[2], 6:[7], 7:[]}
         gr = {v:[pj.Edge(e, None) for e in edges] for v, edges in gr.items()}
-        metadata = []
+        metadata = {}
     else:
         gr, metadata = pj.json_to_graph_data(sys.argv[1])
     """
@@ -233,7 +240,7 @@ def main():
     """
     pp = BfsPreprocessor(gr, metadata)
     for t in [False, True]:
-        print(pp.to_dot(transpose=t))
+        #print(pp.to_dot(transpose=t))
         print(pp.get_degrees(transpose=t))
         print(pp.get_deltas(transpose=t))
         print()

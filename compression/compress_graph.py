@@ -29,8 +29,10 @@ class BasicCompressor(Compressor):
         self.compressed = bytearray()
         info = {}
         for t in (False, True):
-            nbits_degree = util.nbits_for_int(max(self.pp.get_degrees(transpose=t)))
-            nbits_delta = util.nbits_for_int(max(self.pp.get_deltas(transpose=t)))
+            degrees = [abs(x) for x in self.pp.get_degrees(transpose=t)]
+            deltas = [abs(x) for x in self.pp.get_deltas(transpose=t)]
+            nbits_degree = util.nbits_for_int(max(degrees))
+            nbits_delta = util.nbits_for_int(max(deltas))
             graph = self.pp.get_graph(transpose=t)
             info[t] = (nbits_degree, nbits_delta, graph)
             self.compressed.extend(nbits_degree.to_bytes(1, byteorder="big"))
@@ -152,11 +154,11 @@ def main():
         #           |
         #           1
         # (all edges point from bottom up)
-        g = {1:[0], 0:[4,3], 2:[], 3:[2], 4:[2], 5:[4], 6:[7], 7:[]}
-        g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
-        metadata = {}
+        #g = {1:[0], 0:[4,3], 2:[], 3:[2], 4:[2], 5:[4], 6:[7], 7:[]}
+        #g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
+        #metadata = {}
 
-        # Tiny tree
+        # Tiny forest 
         #         2
         #         |
         #         4   3   7
@@ -165,9 +167,9 @@ def main():
         #           |
         #           1
         # (all edges point from bottom up)
-        #g = {1:[0], 0:[4,3], 2:[], 3:[], 4:[2], 5:[4], 6:[7], 7:[]}
-        #g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
-        #metadata = {}
+        g = {1:[0], 0:[4,3], 2:[], 3:[], 4:[2], 5:[4], 6:[7], 7:[]}
+        g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
+        metadata = {}
     else:
         g, metadata = pj.json_to_graph_data(sys.argv[1])
     c = BasicCompressor(preprocess.BfsPreprocessor(g, metadata))

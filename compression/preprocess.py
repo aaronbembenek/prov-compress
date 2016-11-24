@@ -11,11 +11,14 @@ import util
 class CompressionPreprocessor(metaclass=abc.ABCMeta):
 
     def __init__(self, graph, metadata):
-        self.g = graph 
+        self.g = graph
+        self.transpose = None
         self.metadata = metadata
         self.rankings = None
-        self.deltas = None
-        self.degrees = None
+        self.out_deltas = None
+        self.out_degrees = None
+        self.in_deltas = None
+        self.in_degrees = None
         self.ids = None
 
     # Return the nodes in decreasing "reachable order." The nodes are
@@ -37,11 +40,20 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
             get_reachable_size(node)
         return sorted(self.g.keys(), key=lambda v: -reachable_size[v])
 
-    def get_deltas(self):
+    def get_deltas(self, transpose=False):
         if not self.rankings:
             self.rank()
-        if self.deltas:
-            return self.deltas
+        if transpose:
+            if self.in_deltas:
+                return self.in_deltas
+            if not self.transpose:
+                self.transpose = util.transpose_graph(self.g)
+            g = self.transpose
+        else:
+            if self.out_deltas:
+                return self.out_deltas
+            g = self.g
+
         visited = set()
         queue = collections.deque()
         deltas = []
@@ -52,35 +64,63 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
                 queue.append(node)
             while queue:
                 v = queue.popleft()
-                degrees.append(len(self.g[v]))
-                for edge in self.g[v]:
+                degrees.append(len(g[v]))
+                for edge in g[v]:
                     e = edge.dest
                     delta = abs(self.rankings[v] - self.rankings[e])
                     deltas.append(delta)
                     if e not in visited:
                         visited.add(e)
                         queue.append(e)
-        self.deltas = sorted(deltas)
-        self.degrees = sorted(degrees)
-        return self.deltas
+       
+        deltas.sort()
+        degrees.sort()
+        if transpose:
+            self.in_deltas = deltas
+            self.in_degrees = degrees
+        else:
+            self.out_deltas = deltas
+            self.out_degrees = degrees
+        return deltas
 
-    def get_degrees(self):
-        if not self.degrees:
+    def get_degrees(self, transpose=False):
+        if transpose:
+            if not self.in_degrees:
+                self.get_deltas(transpose=True)
+            return self.in_degrees
+        if not self.out_degrees:
             self.get_deltas()
-        return self.degrees
+        return self.out_degrees
 
-    def to_dot(self):
+    def to_dot(self, transpose=False):
         if not self.rankings:
             self.rank()
-        s = ["digraph prov {"]
-        for v, edges in self.g.items():
-            s.extend(["\t%d -> %d;" % \
-                    (self.rankings[v], self.rankings[e.dest]) for e in edges])
+        if not self.ids:
+            self.construct_identifier_ids()
+        if transpose:
+            if not self.transpose:
+                self.transpose = util.transpose_graph(self.g)
+            g = self.transpose
+            s = ["digraph prov_transpose {"]
+        else:
+            g = self.g
+            s = ["digraph prov {"]
+        for v, edges in g.items():
+            s.extend(["\t%d -> %d [label=%d];" % \
+                    (self.rankings[v], self.rankings[e.dest], self.ids[e.label])
+                    for e in edges])
         s.append("}")
         return "\n".join(s)
 
-    def get_graph(self):
+    def get_graph(self, transpose=False):
+        if transpose:
+            if not self.transpose:
+                self.transpose = util.transpose_graph(self.g)
+            return self.transpose
         return self.g
+
+    def get_metadata(self):
+        return self.metadata
 
     def construct_identifier_ids(self):
         '''
@@ -176,6 +216,7 @@ def main():
         metadata = []
     else:
         gr, metadata = pj.json_to_graph_data(sys.argv[1])
+    """
     transpose = util.transpose_graph(gr)
     for name1, g in [("graph", gr), ("transpose", transpose)]:
         print("<<< " + name1 + " >>>")
@@ -188,6 +229,13 @@ def main():
             print("median:", statistics.median(d))
             print("mode:", statistics.mode(d))
             print()
+        print()
+    """
+    pp = BfsPreprocessor(gr, metadata)
+    for t in [False, True]:
+        print(pp.to_dot(transpose=t))
+        print(pp.get_degrees(transpose=t))
+        print(pp.get_deltas(transpose=t))
         print()
 
 if __name__ == "__main__":

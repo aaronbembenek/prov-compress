@@ -205,4 +205,4 @@ def plot_species_distribution(species=("bradypus_variegatus_0",
 
 
 plot_species_distribution()
-plt.show()
+plt.savefig('tmp.png')

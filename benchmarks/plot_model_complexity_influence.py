@@ -115,7 +115,7 @@ def plot_influence(conf, mse_values, prediction_times, complexities):
     host.axis["left"].label.set_color(p1.get_color())
     par1.axis["right"].label.set_color(p2.get_color())
     plt.title('Influence of Model Complexity - %s' % conf['estimator'].__name__)
-    plt.show()
+    plt.savefig('tmp.png')
 
 
 def _count_nonzero_coefficients(estimator):

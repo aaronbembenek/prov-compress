@@ -131,19 +131,19 @@ rec_l1 = rgr_lasso.coef_.reshape(l, l)
 
 plt.figure(figsize=(8, 3.3))
 plt.subplot(131)
-plt.imshow(data, cmap=plt.cm.gray, interpolation='nearest')
+#plt.imshow(data, cmap=plt.cm.gray, interpolation='nearest')
 plt.axis('off')
 plt.title('original image')
 plt.subplot(132)
-plt.imshow(rec_l2, cmap=plt.cm.gray, interpolation='nearest')
+#plt.imshow(rec_l2, cmap=plt.cm.gray, interpolation='nearest')
 plt.title('L2 penalization')
 plt.axis('off')
 plt.subplot(133)
-plt.imshow(rec_l1, cmap=plt.cm.gray, interpolation='nearest')
+#plt.imshow(rec_l1, cmap=plt.cm.gray, interpolation='nearest')
 plt.title('L1 penalization')
 plt.axis('off')
 
 plt.subplots_adjust(hspace=0.01, wspace=0.01, top=1, bottom=0, left=0,
                     right=1)
 
-plt.show()
+plt.savefig('tmp.png')

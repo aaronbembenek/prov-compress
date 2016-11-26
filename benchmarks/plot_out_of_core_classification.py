@@ -388,7 +388,7 @@ def autolabel(rectangles):
                 ha='center', va='bottom')
 
 autolabel(rectangles)
-plt.show()
+plt.savefig('tmp.png')
 
 # Plot prediction times
 plt.figure()
@@ -413,4 +413,4 @@ ax.set_ylim((0, ymax))
 ax.set_ylabel('runtime (s)')
 ax.set_title('Prediction Times (%d instances)' % n_test_documents)
 autolabel(rectangles)
-plt.show()
+plt.savefig('tmp.png')

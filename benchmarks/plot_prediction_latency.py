@@ -153,7 +153,7 @@ def boxplot_runtimes(runtimes, pred_type, configuration):
         configuration['n_features']))
     ax1.set_ylabel('Prediction Time (us)')
 
-    plt.show()
+    plt.savefig('tmp.png')
 
 
 def benchmark(configuration):
@@ -225,7 +225,7 @@ def plot_n_features_influence(percentiles, percentile):
     ax1.set_title('Evolution of Prediction Time with #Features')
     ax1.set_xlabel('#Features')
     ax1.set_ylabel('Prediction Time at %d%%-ile (us)' % percentile)
-    plt.show()
+    plt.savefig('tmp.png')
 
 
 def benchmark_throughputs(configuration, duration_secs=0.1):
@@ -263,7 +263,7 @@ def plot_benchmark_throughput(throughputs, configuration):
     ax.set_ylabel('Throughput (predictions/sec)')
     ax.set_title('Prediction Throughput for different estimators (%d '
                  'features)' % configuration['n_features'])
-    plt.show()
+    plt.savefig('tmp.png')
 
 
 ###############################################################################

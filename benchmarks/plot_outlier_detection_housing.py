@@ -130,4 +130,4 @@ plt.legend((legend2_values_list[0].collections[0],
 plt.ylabel("% lower status of the population")
 plt.xlabel("average number of rooms per dwelling")
 
-plt.show()
+plt.savefig('tmp.png')

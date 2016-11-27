@@ -35,4 +35,17 @@ int main(int argc, char* argv[]) {
         }
         cout << endl;
     }
+
+    for (size_t i = 0; i < n; ++i) {
+        for (size_t j = 0; j < n; ++j) {
+            cout << "ALL PATHS BETWEEN " << i << " and " << j << endl;
+            auto paths = graph->get_all_paths(i, j);
+            for (auto path : paths) {
+                for (auto node : path) {
+                    cout << node << endl;
+                }
+                cout << "----------" << endl;
+            }
+        }
+    }
 }

@@ -66,7 +66,7 @@ class Encoder():
         'cf:file'
     }
     key_bits = util.nbits_for_int(len(key_strings))
-    label_bits = util.nbits_for_int(len(prov_label_strings))
+    label_bits = 8 
     typ_bits = util.nbits_for_int(len(typ_strings))
     val_bits = max(util.nbits_for_int(len(val_strings)), util.nbits_for_int(len(node_types)))
     date_bits = {
@@ -94,11 +94,12 @@ class Encoder():
 
         self.keys_dict = {elt:util.int2bitstr(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
         self.vals_dict = {elt:util.int2bitstr(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
-        self.labels_dict = {elt:util.int2bitstr(i, Encoder.label_bits) 
-                for (i, elt) in enumerate(Encoder.prov_label_strings)}
         self.typs_dict = {elt:util.int2bitstr(i, Encoder.typ_bits) for (i, elt) in enumerate(Encoder.typ_strings)}
         self.node_types_dict = {elt:util.int2bitstr(i, Encoder.val_bits) 
                 for (i, elt) in enumerate(Encoder.node_types)}
+
+        self.labels_dict = {elt:util.int2bitstr(i, Encoder.label_bits) 
+                for (i, elt) in enumerate(Encoder.prov_label_strings)}
 
         with open("prov_data_dicts.txt", 'w') as f:
             f.write(str(self.keys_dict))
@@ -198,24 +199,22 @@ class CompressionEncoder(Encoder):
                 equal_keys.append(self.keys_dict[key])
                 continue
             
-            # encode the value here
-
-            '''
-            TODO replace any labels
-            if key == 'prov:label':
-                for label in self.labels_dict:
-                    val = val.replace(label, self.labels_dict[label])
-            '''
-            # replace any common strings
+            # ENCODED VALUES 
+            # if val is a common string, replace it with an identifier
             if isinstance(val, str) and val in self.vals_dict:
                 encoded_keys.append(self.keys_dict[key]+self.vals_dict[val])
             # replace the types
             elif key == 'cf:type':
                 if isinstance(val, int):
                     encoded_keys.append(self.keys_dict[key]+self.node_types_dict[val])
+            
             # this is some other key we couldn't encode 
             # record the length of the string in bits
             else:
+                # replace any labels
+                if key == 'prov:label':
+                    for label in self.labels_dict:
+                        val = val.replace(label, int(self.labels_dict[label], 2).to_bytes(1, 'big').decode())
                 byts = (str(val)).encode('utf-8')
                 bits = ''.join(["{0:08b}".format(x) for x in byts])
                 other_keys.append(self.keys_dict[key]

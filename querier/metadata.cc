@@ -130,6 +130,7 @@ void CompressedMetadata::construct_prov_dicts() {
         set_dict_entries(*dicts[i], data[i], 2);
         *bits[i] = nbits_for_int(dicts[i]->size());
     }
+    label_bits = 8; // we replace labels with one-byte chars
 }
 
 size_t CompressedMetadata::find_next_entry(size_t cur_pos) {
@@ -213,6 +214,7 @@ void CompressedMetadata::construct_metadata_dict(string& infile) {
             cur_pos += val_bits;
         }
         // nonencoded values
+        char label_key;
         for (size_t i = 0; i < num_other_keys; ++i) {
             metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
@@ -223,6 +225,11 @@ void CompressedMetadata::construct_metadata_dict(string& infile) {
             metadata_bs->get_bits_as_str(str_val, val_size, cur_pos);
             cur_pos += val_size;
             (*default_data)[key_dict[key]] = str_val;
+
+            if (key_dict[key] == "prov:label") {
+                label_key = str_val[0];
+                str_val = prov_label_dict[label_key] + str_val.substr(1) ;
+            }
         }
     }
 
@@ -311,6 +318,7 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     }
 
     // nonencoded values
+    char label_key;
     for (size_t i = 0; i < num_other_keys; ++i) {
         metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
         cur_pos += key_bits;
@@ -318,10 +326,12 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
         cur_pos += MAX_STRING_SIZE_BITS;
         metadata_bs->get_bits_as_str(str_val, val_size, cur_pos);
         cur_pos += val_size;
-        /* TODO
-        if (key_dict[key] == "prov:label"):
-            str_val.substr(0, label_bits)
-        */
+
+        if (key_dict[key] == "prov:label") {
+            label_key = str_val[0];
+            str_val = prov_label_dict[label_key] + str_val.substr(1) ;
+        }
+            
         metadata[key_dict[key]] = str_val; 
     }
 

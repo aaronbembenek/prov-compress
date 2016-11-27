@@ -1,11 +1,8 @@
+#include <map>
 #include <queue>
 #include <set>
-#include <tuple>
 
 #include "graph.hh"
-
-
-#include <iostream>
 
 using namespace std;
 
@@ -43,17 +40,13 @@ vector<vector<Node_Id>> Graph::get_all_paths(Node_Id source, Node_Id sink) {
     typedef vector<Node_Id> v;
     struct Entry {
         Node_Id node;
-        v children;
         v::iterator it;
         vector<v> acc;
     };
 
-    vector<Entry> stack {{}};
-    Entry& first = stack.back();
-    first.node = source;
-    first.children = get_outgoing_edges(source);
-    first.it = first.children.begin();
-    first.acc = {};
+    map<Node_Id, v> memo;
+    memo[source] = get_outgoing_edges(source);
+    vector<Entry> stack {{source, memo[source].begin(), {}}};
     vector<v> acc;
     bool forward = true;
     while (!stack.empty()) {
@@ -69,14 +62,12 @@ vector<vector<Node_Id>> Graph::get_all_paths(Node_Id source, Node_Id sink) {
         if (top.node == sink) {
             top.acc.push_back({sink});
         } else {
-            if (top.it != top.children.end()) {
+            if (top.it != memo[top.node].end()) {
                 Node_Id child = *(top.it++);
-                stack.push_back({});
-                Entry& e = stack.back();
-                e.node = child;
-                e.children = get_outgoing_edges(child);
-                e.it = e.children.begin();
-                e.acc = {};
+                if (memo.find(child) == memo.end()) {
+                    memo[child] = get_outgoing_edges(child);
+                }
+                stack.push_back({child, memo[child].begin(), {}});
                 forward = true;
                 continue;
             }

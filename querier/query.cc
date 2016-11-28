@@ -66,8 +66,8 @@ int main(int argc, char *argv[]) {
     Clp_DeleteParser(clp);
     
     vector<string> identifiers = {
-        "cf:AgAAAACI//9rAAAAAAAAABMiaFq3/swrAAAAAAAAAAA=",
-        "cf:BAAAAAAAAAAj+wYAAAAAABMiaFq3/swrAQAAAAAAAAA=", 
+        "AQAAAAAAAECEZgMAAAAAADqayM2RTtonCgAAAAAAAAA=",
+        "AAgAAAAAEIDJigAAAAAAADqayM2RTtonAAAAAAAAAAA=",
         "dummy"
     };
 

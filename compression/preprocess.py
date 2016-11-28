@@ -90,6 +90,23 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
             self.out_degrees = degrees
         return deltas
 
+    def cyclic(self):
+        path = set()
+        visited = set()
+
+        def visit(vertex):
+            if vertex in visited:
+                return False
+            visited.add(vertex)
+            path.add(vertex)
+            for edge in self.g.get(vertex, ()):
+                if edge.dest in path or visit(edge.dest):
+                    return True
+                path.remove(vertex)
+            return False
+
+        return any(visit(v) for v in self.g)
+
     def get_degrees(self, transpose=False):
         if transpose:
             if not self.in_degrees:
@@ -185,6 +202,7 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
 class BfsPreprocessor(CompressionPreprocessor):
 
     def rank(self):
+        assert(not self.cyclic())
         if self.rankings:
             return self.rankings
         self.rankings = {}

@@ -8,6 +8,7 @@ import json
 DICT_BEGIN = '{'
 DICT_END = '}'
 
+RELATION_TYPS = ["wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used"]
 RECOGNIZED_TYPS = ["prefix", "activity", "entity", "relation", "unknown"]
 
 class Edge:
@@ -39,12 +40,40 @@ def json_to_graph_data(infile):
                 continue
             line = line[i:]
             for typ, entries in json.loads(line).items():
-                assert typ in RECOGNIZED_TYPS and typ != "unknown"
+                if typ in RELATION_TYPS:
+                    for identifier, data in entries.items():
+                        if 'prov:entity' in data:
+                            if typ == 'used':
+                                data["cf:sender"] = data["prov:entity"]
+                                data["cf:receiver"] = data["prov:activity"]
+                            else:
+                                assert(typ == 'wasGeneratedBy')
+                                data["cf:sender"] = data["prov:activity"]
+                                data["cf:receiver"] = data["prov:entity"]
+                            del data["prov:entity"]
+                            del data["prov:activity"]
+                        elif typ == 'wasDerivedFrom':
+                            data["cf:sender"] = data["prov:usedEntity"]
+                            data["cf:receiver"] = data["prov:generatedEntity"]
+                            del data["prov:usedEntity"]
+                            del data["prov:generatedEntity"]
+                        elif typ == 'wasInformedBy':
+                            data["cf:sender"] = data["prov:informant"]
+                            data["cf:receiver"] = data["prov:informed"]
+                            del data["prov:informant"]
+                            del data["prov:informed"]
+                    typ = "relation"
+                assert typ in RECOGNIZED_TYPS 
                 if typ == "prefix":
                     continue
                 for identifier, data in entries.items():
                     # confirm that each entry in the JSON has a unique ID.
-                    assert identifier not in metadata
+                    if identifier in metadata:
+                        pass
+                        #TODO
+                        #assert(data == metadata[identifier].data)
+                        #assert(typ == metadata[identifier].typ)
+                    #assert identifier not in metadata
                     metadata[identifier] = Metadata(typ, data)
                     missing_nodes.discard(identifier)
                     if typ == "relation":
@@ -58,12 +87,17 @@ def json_to_graph_data(infile):
                                 missing_nodes.add(v)
                         graph.setdefault(tail, []).append(
                                 Edge(head, identifier))
+                        if head in graph:
+                            for edge in graph[head]:
+                                if edge.dest == tail:
+                                    print(head, tail)
+                                    assert(0)
                     else:
                         # This is just so that we have a node in the graph
                         # for every entity/activity.
                         graph.setdefault(identifier, [])
     for i, identifier in enumerate(missing_nodes):
-        assert identifier not in metadata
+        #assert identifier not in metadata
         metadata[identifier] = Metadata("unknown", {'cf:id':-i, 'cf:type':None})
         graph.setdefault(identifier, [])
     return graph, metadata

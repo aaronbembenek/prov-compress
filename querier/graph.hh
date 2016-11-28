@@ -13,10 +13,14 @@ class Graph {
         virtual size_t get_node_count() = 0;
         std::vector<Node_Id> get_all_descendants(Node_Id);
         std::vector<Node_Id> get_all_ancestors(Node_Id);
+        std::vector<std::vector<Node_Id>> get_all_paths(Node_Id, Node_Id);
 
     private:
         std::vector<Node_Id> bfs_helper(Node_Id,
                 std::vector<Node_Id> (Graph::*)(Node_Id));
+        /*
+        std::vector<std::vector<Node_Id>*> all_paths_helper(Node_Id, Node_Id);
+        */
 };
 
 #endif

@@ -167,10 +167,24 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
         self.ids = self.rankings.copy()
         
         for identifier, metadata in self.metadata.items():
-            if metadata.typ == 'relation':
-                # put IDs for relation identifiers in the dictionary
-                self.ids[identifier] = ((self.rankings[metadata.data['cf:sender']] << node_bits) 
-                                        + self.rankings[metadata.data['cf:receiver']])
+            # put IDs for relation identifiers in the dictionary
+            if metadata.typ in pj.RELATION_TYPS:
+                if metadata.typ == 'used':
+                    head = metadata.data["prov:entity"]
+                    tail = metadata.data["prov:activity"]
+                elif metadata.typ == 'wasGeneratedBy':
+                    head = metadata.data["prov:activity"]
+                    tail = metadata.data["prov:entity"]
+                elif metadata.typ == 'wasDerivedFrom':
+                    head = metadata.data["prov:usedEntity"]
+                    tail = metadata.data["prov:generatedEntity"]
+                elif metadata.typ == 'wasInformedBy':
+                    head = metadata.data["prov:informant"]
+                    tail = metadata.data["prov:informed"]
+                elif metadata.typ == 'relation':
+                    head = metadata.data["prov:sender"]
+                    tail = metadata.data["prov:receiver"]
+                self.ids[identifier] = ((self.rankings[head] << node_bits) + self.rankings[tail])
         sorted_idents = sorted(self.ids.keys(), key=lambda v: self.ids[v])
         
         # reference encoding
@@ -195,7 +209,7 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
             
             byts += len_wbs.to_bytearray() + diff_wbs.to_bytearray()
 
-        with open("identifiers.txt", 'wb') as f:
+        with open(pj.PATH+"/identifiers.txt", 'wb') as f:
             f.write(byts)
 
         return self.ids

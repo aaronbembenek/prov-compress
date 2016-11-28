@@ -4,6 +4,9 @@ graph and a dictionary of metadata.
 Provides functions to output data in different formats for dot/gspan processing.
 '''
 import json
+import os
+
+PATH = os.getcwd()
 
 DICT_BEGIN = '{'
 DICT_END = '}'
@@ -40,23 +43,6 @@ def json_to_graph_data(infile):
                 continue
             line = line[i:]
             for typ, entries in json.loads(line).items():
-                if typ in RELATION_TYPS:
-                    for identifier, data in entries.items():
-                        if typ == 'used':
-                            data["cf:sender"] = data["prov:entity"]
-                            data["cf:receiver"] = data["prov:activity"]
-                        elif typ == 'wasGeneratedBy':
-                                data["cf:sender"] = data["prov:activity"]
-                                data["cf:receiver"] = data["prov:entity"]
-                        elif typ == 'wasDerivedFrom':
-                            data["cf:sender"] = data["prov:usedEntity"]
-                            data["cf:receiver"] = data["prov:generatedEntity"]
-                        elif typ == 'wasInformedBy':
-                            data["cf:sender"] = data["prov:informant"]
-                            data["cf:receiver"] = data["prov:informed"]
-                        elif typ == 'relation':
-                            data["cf:sender"] = data["prov:informant"]
-                            data["cf:receiver"] = data["prov:informed"]
                 if typ == "prefix":
                     continue
                 for identifier, data in entries.items():
@@ -86,8 +72,8 @@ def json_to_graph_data(infile):
                             head = data["prov:informant"]
                             tail = data["prov:informed"]
                         elif typ == 'relation':
-                            head = data["prov:informant"]
-                            tail = data["prov:informed"]
+                            head = data["prov:sender"]
+                            tail = data["prov:receiver"]
                         
                         # there are relations defined where the sender ID 
                         # is never actually defined as an entity/activity
@@ -144,4 +130,3 @@ def graph_to_gspan(infile):
         vs.extend(['v %s %s' % (iti[v], NODE_TYPS.index(metadata[v].typ))])
         es.extend(['e %s %s %s' % (iti[v], iti[edge.dest], 0) for edge in edges])
     return "\n".join(s + vs + es)
-

@@ -63,7 +63,8 @@ map<string, string> DummyMetadata::get_metadata(string& identifier) {
     }
     return m;
 }
-vector<string> DummyMetadata::typs = {"prefix", "activity", "entity", "relation", "unknown"};
+vector<string> DummyMetadata::typs = {"prefix", "activity", "relation", "entity", "agent", "message", "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom","unknown"};
+
 
 /*************************************
  * COMPRESSED IMPLEMENTATION 
@@ -277,12 +278,30 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     metadata_bs->get_bits<unsigned char>(typ, typ_bits, cur_pos);
     cur_pos += typ_bits;
     metadata["typ"] = typ_dict[typ];
-    bool is_relation = (typ_dict[typ] == "relation");
+    bool is_relation = (RELATION_TYPS.count(typ_dict[typ]));
 
     // get sender/receiver if a relation
     if (is_relation) {
-        metadata["cf:sender"] = intid2id[my_intid->second >> id_bits];
-        metadata["cf:receiver"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+        if (metadata["typ"] == "used") {
+            metadata["prov:entity"] = intid2id[my_intid->second >> id_bits];
+            metadata["prov:activity"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+        }
+        else if (metadata["typ"] == "wasGeneratedBy") {
+            metadata["prov:activity"] = intid2id[my_intid->second >> id_bits];
+            metadata["prov:entity"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+        }
+        else if (metadata["typ"] == "wasDerivedFrom") {
+            metadata["prov:usedEntity"] = intid2id[my_intid->second >> id_bits];
+            metadata["prov:generatedEntity"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+        }
+        else if (metadata["typ"] == "wasInformedBy") {
+            metadata["prov:informant"]= intid2id[my_intid->second >> id_bits];
+            metadata["prov:informed"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+        }
+        else if (metadata["typ"] == "relation") {
+            metadata["cf:sender"] = intid2id[my_intid->second >> id_bits];
+            metadata["cf:receiver"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+        }
     }
 
     // get the number of each type of key
@@ -383,5 +402,6 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
 const string CompressedMetadata::PROV_DICTS_FILE = "../compression/prov_data_dicts.txt";
 const string CompressedMetadata::IDENTIFIERS_FILE = "../compression/identifiers.txt";
 const string CompressedMetadata::RELATIVE_NODE = "@";
-const vector <size_t> CompressedMetadata::DATE_BITS = {12,4,5,5,6,6,10};
+const set<string> CompressedMetadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
+const vector<size_t> CompressedMetadata::DATE_BITS = {12,4,5,5,6,6};
 const size_t CompressedMetadata::DATE_TYPE_BITS = nbits_for_int(CompressedMetadata::DATE_BITS.size());

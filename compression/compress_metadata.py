@@ -5,7 +5,8 @@ import bitstring
 from process_json import (
     DICT_BEGIN,
     DICT_END,
-    RELATION_TYPS
+    RELATION_TYPS,
+    PATH
 )
 import util
 from collections import defaultdict
@@ -76,9 +77,8 @@ class Encoder():
         "hour": 5,
         "minute": 6,
         "sec": 6,
-        "subsec": 10,
     }
-    date_types = ["year","month","day","hour","minute","sec","subsec"]
+    date_types = ["year","month","day","hour","minute","sec"]
     date_type_bits = util.nbits_for_int(len(date_types))
 
     def __init__(self, graph, metadata, iti):
@@ -101,7 +101,7 @@ class Encoder():
         self.labels_dict = {elt:util.int2bitstr(i, Encoder.label_bits) 
                 for (i, elt) in enumerate(Encoder.prov_label_strings)}
 
-        with open("prov_data_dicts.txt", 'w') as f:
+        with open(PATH+"/prov_data_dicts.txt", 'w') as f:
             f.write(str(self.keys_dict))
             f.write(str(self.vals_dict))
             f.write(str(self.labels_dict))
@@ -120,11 +120,24 @@ class CompressionEncoder(Encoder):
             relative_encoding = False
             default_data = self.default_node_data
             # since we can't modify the metadata in place during the loop, make a copy
-            if metadata.typ == 'relation':
+            if metadata.typ in RELATION_TYPS:
                 default_data = self.default_relation_data
                 # we don't want to include sender/receiver in metadata
-                del metadata.data['cf:sender']
-                del metadata.data['cf:receiver']
+                if metadata.typ == 'used':
+                    del metadata.data["prov:entity"]
+                    del metadata.data["prov:activity"]
+                elif metadata.typ == 'wasGeneratedBy':
+                    del metadata.data["prov:activity"]
+                    del metadata.data["prov:entity"]
+                elif metadata.typ == 'wasDerivedFrom':
+                    del metadata.data["prov:usedEntity"]
+                    del metadata.data["prov:generatedEntity"]
+                elif metadata.typ == 'wasInformedBy':
+                    del metadata.data["prov:informant"]
+                    del metadata.data["prov:informed"]
+                elif metadata.typ == 'relation':
+                    del metadata.data["prov:sender"]
+                    del metadata.data["prov:receiver"]
             elif 'cf:id' not in metadata.data:
                 # this is some default camflow metadata
                 continue
@@ -152,9 +165,8 @@ class CompressionEncoder(Encoder):
                     day = int(date[2])
                     hour = int(time[0])
                     minute = int(time[1])
-                    sec = int(time[2].split('.')[0])
-                    subsec = int(time[2].split('.')[1])
-                    time_info = [year, month, day, hour, minute, sec, subsec]
+                    sec = int(time[2])
+                    time_info = [year, month, day, hour, minute, sec]
                     if len(self.default_time) == 0:
                         self.default_time = time_info.copy()
                     for i, t in enumerate(self.default_time):
@@ -175,7 +187,7 @@ class CompressionEncoder(Encoder):
             
             # add a marker in the metadata that this is encoded relative 
             # to another node with the same cf_id
-            if metadata.typ != 'relation' and cf_id in id_dict and cf_id != None:
+            if metadata.typ not in RELATION_TYPS and cf_id in id_dict and cf_id != None:
                 metadata.data[Encoder.RELATIVE_NODE] = self.iti[id_dict[cf_id][0]]
  
     def encode_metadata_entry(self, metadata):
@@ -263,7 +275,7 @@ class CompressionEncoder(Encoder):
         entry_data = ''
         sorted_idents = sorted(self.iti.keys(), key=lambda v: self.iti[v])
         for i, identifier in enumerate(sorted_idents): 
-            if self.metadata[identifier].typ == 'relation':
+            if self.metadata[identifier].typ in RELATION_TYPS:
                 entry_data += util.int2bitstr(self.iti[identifier], 2*self.id_bits)
             entry_data += self.typs_dict[self.metadata[identifier].typ]
             entry_data += self.encode_metadata_entry(self.metadata[identifier].data)

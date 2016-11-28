@@ -25,6 +25,7 @@ private:
     static const string IDENTIFIERS_FILE;
     static const string RELATIVE_NODE;
     static const int MAX_STRING_SIZE_BITS = 10;
+    static const set<string> RELATION_TYPS;
 
     static const vector<size_t> DATE_BITS;
     static const size_t DATE_TYPE_BITS;

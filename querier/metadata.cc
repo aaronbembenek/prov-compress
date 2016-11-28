@@ -146,6 +146,7 @@ size_t CompressedMetadata::find_next_entry(size_t cur_pos) {
     }
     cur_pos += key_bits*num_equal_keys;
     cur_pos += (key_bits+val_bits)*num_encoded_keys;
+
     for (size_t i = 0; i < num_other_keys; ++i) {
         unsigned char key;
         metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
@@ -157,6 +158,7 @@ size_t CompressedMetadata::find_next_entry(size_t cur_pos) {
         metadata_bs->get_bits_as_str(str_val, val_size, cur_pos);
         cur_pos += val_size;
     }
+
     for (size_t i = 0; i < num_diff_dates; ++i) {
         metadata_bs->get_bits<size_t>(date_index, DATE_TYPE_BITS, cur_pos);
         cur_pos += DATE_TYPE_BITS;
@@ -261,7 +263,7 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     map<string, string> metadata;
     size_t cur_pos, val_size, date_index;
     unsigned char key, encoded_val, typ;
-    int int_val;
+    int int_val, intid;
     string str_val;
 
     size_t num_equal_keys, num_encoded_keys, num_other_keys, num_diff_dates;
@@ -282,25 +284,26 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
 
     // get sender/receiver if a relation
     if (is_relation) {
+        intid = my_intid->second - num_nodes;
         if (metadata["typ"] == "used") {
-            metadata["prov:entity"] = intid2id[my_intid->second >> id_bits];
-            metadata["prov:activity"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+            metadata["prov:entity"] = intid2id[intid >> id_bits];
+            metadata["prov:activity"] = intid2id[intid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "wasGeneratedBy") {
-            metadata["prov:activity"] = intid2id[my_intid->second >> id_bits];
-            metadata["prov:entity"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+            metadata["prov:activity"] = intid2id[intid >> id_bits];
+            metadata["prov:entity"] = intid2id[intid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "wasDerivedFrom") {
-            metadata["prov:usedEntity"] = intid2id[my_intid->second >> id_bits];
-            metadata["prov:generatedEntity"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+            metadata["prov:usedEntity"] = intid2id[intid >> id_bits];
+            metadata["prov:generatedEntity"] = intid2id[intid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "wasInformedBy") {
-            metadata["prov:informant"]= intid2id[my_intid->second >> id_bits];
-            metadata["prov:informed"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+            metadata["prov:informant"]= intid2id[intid >> id_bits];
+            metadata["prov:informed"] = intid2id[intid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "relation") {
-            metadata["cf:sender"] = intid2id[my_intid->second >> id_bits];
-            metadata["cf:receiver"] = intid2id[my_intid->second & ((1 << id_bits) - 1)]; 
+            metadata["cf:sender"] = intid2id[intid >> id_bits];
+            metadata["cf:receiver"] = intid2id[intid & ((1 << id_bits) - 1)]; 
         }
     }
 

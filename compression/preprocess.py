@@ -107,7 +107,8 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
             path.add(vertex)
             for edge in self.g.get(vertex, ()):
                 if edge.dest in path or visit(edge.dest):
-                    print(path, edge.dest)
+                    if edge.dest in path:
+                        print(path, vertex, edge.dest)
                     return True
                 path.remove(vertex)
             return False
@@ -184,7 +185,8 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
                 elif metadata.typ == 'relation':
                     head = metadata.data["prov:sender"]
                     tail = metadata.data["prov:receiver"]
-                self.ids[identifier] = ((self.rankings[head] << node_bits) + self.rankings[tail])
+                # add number of nodes to make sure we don't overlap with actual node IDs
+                self.ids[identifier] = ((self.rankings[head] << node_bits) + self.rankings[tail] + len(self.g))
         sorted_idents = sorted(self.ids.keys(), key=lambda v: self.ids[v])
         
         # reference encoding

@@ -49,7 +49,7 @@ class Encoder():
     # (prov:label is the key, and have a value following)
     prov_label_strings = {
         '[address]', '[path]', '[TODO]', '[task]', '[unknown]', '[block special]', '[char special]', 
-        '[directory]', '[fifo]', '[link]', '[file]', '[socket]', 
+        '[directory]', '[fifo]', '[link]', '[file]', '[socket]', '[mmaped_file]'
     }
     val_strings = {
         # Booleans
@@ -135,7 +135,8 @@ class CompressionEncoder(Encoder):
                 elif metadata.typ == 'wasInformedBy':
                     del metadata.data["prov:informant"]
                     del metadata.data["prov:informed"]
-                elif metadata.typ == 'relation':
+                else:
+                    assert(metadata.typ == 'relation')
                     del metadata.data["prov:sender"]
                     del metadata.data["prov:receiver"]
             elif 'cf:id' not in metadata.data:

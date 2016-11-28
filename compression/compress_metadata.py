@@ -5,7 +5,7 @@ import bitstring
 from process_json import (
     DICT_BEGIN,
     DICT_END,
-    RECOGNIZED_TYPS,
+    RELATION_TYPS
 )
 import util
 from collections import defaultdict

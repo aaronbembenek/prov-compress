@@ -27,17 +27,23 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
     # visit the sources during a graph search.
     def get_reachable_order(self):
         reachable_size = {}
-        def get_reachable_size(v):
+        def get_reachable_size(v, visited, depth=0):
+            # XXX hack to confine the depth of our search...
+            # we can probably make it iterative 
+            if depth > 200:
+                return 0
             if v in reachable_size:
                 return reachable_size[v]
             edges = [e.dest for e in self.g[v]]
+            depth += 1
             x = len(edges)
             for edge in edges:
-                x += get_reachable_size(edge)
+                x += get_reachable_size(edge, visited, depth)
             reachable_size[v] = x
             return x
+        
         for node in self.g.keys():
-            get_reachable_size(node)
+            get_reachable_size(node, set())
         return sorted(self.g.keys(), key=lambda v: -reachable_size[v])
 
     def get_deltas(self, transpose=False):
@@ -101,11 +107,12 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
             path.add(vertex)
             for edge in self.g.get(vertex, ()):
                 if edge.dest in path or visit(edge.dest):
+                    print(path, edge.dest)
                     return True
                 path.remove(vertex)
             return False
 
-        return any(visit(v) for v in self.g)
+        return(any(visit(v) for v in self.g))
 
     def get_degrees(self, transpose=False):
         if transpose:
@@ -202,7 +209,7 @@ class CompressionPreprocessor(metaclass=abc.ABCMeta):
 class BfsPreprocessor(CompressionPreprocessor):
 
     def rank(self):
-        assert(not self.cyclic())
+        #assert(not self.cyclic())
         if self.rankings:
             return self.rankings
         self.rankings = {}

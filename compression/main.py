@@ -23,10 +23,11 @@ def main():
 
     graph, metadata = pj.json_to_graph_data(infile)
     r = BfsPreprocessor(graph, metadata)
-    r.rank()
-    #iti = r.construct_identifier_ids()
+    iti = r.construct_identifier_ids()
+    '''
     e = CompressionEncoder(graph, metadata, iti)
     e.compress_metadata(outfile)
+    '''
 
 if __name__ == "__main__":
     main()

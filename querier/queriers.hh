@@ -17,12 +17,11 @@
 class Querier {
 public:
    virtual map<string, string> get_metadata(string& identifier) = 0;
-   // TODO change signatures to return graph
-   virtual void get_all_ancestors(string& identifier) = 0;
-   virtual void get_direct_ancestors(string& identifier) = 0;
-   virtual void get_all_descendants(string& identifier) = 0;
-   virtual void get_direct_descendants(string& identifier) = 0;
-   virtual void all_paths(string& sourceid, string& sinkid) = 0;
+   virtual vector<Node_Id> get_all_ancestors(string& identifier) = 0;
+   virtual vector<Node_Id> get_direct_ancestors(string& identifier) = 0;
+   virtual vector<Node_Id> get_all_descendants(string& identifier) = 0;
+   virtual vector<Node_Id> get_direct_descendants(string& identifier) = 0;
+   virtual vector<vector<Node_Id>> all_paths(string& sourceid, string& sinkid) = 0;
    virtual void friends_of(string& identifier) = 0;
 };
 
@@ -30,11 +29,11 @@ class DummyQuerier : Querier {
 public:
     DummyQuerier(string& auditfile);
     map<string, string> get_metadata(string& identifier) override;
-    void get_all_ancestors(string& identifier) override;
-    void get_direct_ancestors(string& identifier) override;
-    void get_all_descendants(string& identifier) override;
-    void get_direct_descendants(string& identifier) override;
-    void all_paths(string& sourceid, string& sinkid) override;
+    vector<Node_Id> get_all_ancestors(string& identifier) override;
+    vector<Node_Id> get_direct_ancestors(string& identifier) override;
+    vector<Node_Id> get_all_descendants(string& identifier) override;
+    vector<Node_Id> get_direct_descendants(string& identifier) override;
+    vector<vector<Node_Id>> all_paths(string& sourceid, string& sinkid) override;
     void friends_of(string& identifier) override;
     
 private:
@@ -45,15 +44,16 @@ class CompressedQuerier: Querier {
 public:
     CompressedQuerier(string& metafile, string& graphfile);
     map<string, string> get_metadata(string& identifier) override;
-    void get_all_ancestors(string& identifier) override;
-    void get_direct_ancestors(string& identifier) override;
-    void get_all_descendants(string& identifier) override;
-    void get_direct_descendants(string& identifier) override;
-    void all_paths(string& sourceid, string& sinkid) override;
+    vector<Node_Id> get_all_ancestors(string& identifier) override;
+    vector<Node_Id> get_direct_ancestors(string& identifier) override;
+    vector<Node_Id> get_all_descendants(string& identifier) override;
+    vector<Node_Id> get_direct_descendants(string& identifier) override;
+    vector<vector<Node_Id>> all_paths(string& sourceid, string& sinkid) override;
     void friends_of(string& identifier) override;
     
 private:
     CompressedMetadata* metadata_;
+    Graph* graph;
 };
 
 #endif /* QUERY_H */

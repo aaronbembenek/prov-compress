@@ -45,7 +45,7 @@ class BasicCompressor(Compressor):
 
         nbits_index_entry = util.nbits_for_int(max(index))
         self.compressed.extend(nbits_index_entry.to_bytes(1, byteorder="big"))
-        self.compressed.extend(len(index).to_bytes(1, byteorder="big"))
+        self.compressed.extend(len(index).to_bytes(4, byteorder="big"))
         bs = util.WriterBitString()
         for i in index:
             bs.write_int(i, width=nbits_index_entry)
@@ -106,7 +106,7 @@ class BasicCompressor(Compressor):
         nbits_first_out_delta = nbits_out_delta + 1
         """
         nbits_index_entry = bs.read_int(8)
-        index_length = bs.read_int(8)
+        index_length = bs.read_int(32)
 
         index = [0]
         for i in range(index_length):

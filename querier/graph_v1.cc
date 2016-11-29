@@ -12,7 +12,9 @@ Graph_V1::Graph_V1(string& compressed) : data(compressed) {
     pos += data.get_bits<size_t>(nbits_indelta, 8, pos);
     size_t nbits_index_entry;
     pos += data.get_bits<size_t>(nbits_index_entry, 8, pos);
-    pos += data.get_bits<size_t>(index_length, 8, pos);
+    pos += data.get_bits<size_t>(index_length, 32, pos);
+    // FIXME potential overflow here...
+    assert(index_length != (size_t) -1);
     index_length += 1;
 
     // Create index from node ID into node data.

@@ -65,22 +65,26 @@ int main(int argc, char *argv[]) {
     }
     Clp_DeleteParser(clp);
     
-    vector<string> identifiers = {
-        "AQAAAAAAAECEZgMAAAAAADqayM2RTtonCgAAAAAAAAA=",
-        "AAgAAAAAEIDJigAAAAAAADqayM2RTtonAAAAAAAAAAA=",
-        "dummy"
-    };
-
+    string dummy_id = "dummy";
     if (compressed) {
         CompressedQuerier q1(metafile, graphfile);
-        for (auto id : identifiers) {
+        // test on all identifiers
+        for (auto id : q1.get_ids()) {
             auto metadata = q1.get_metadata(id);
+            print_dict(metadata);
+        }
+        for (unsigned i = 0; i < 100; ++i) {
+            auto metadata = q1.get_metadata(dummy_id);
             print_dict(metadata);
         }
     } else {
         DummyQuerier q2(auditfile);
-         for (auto id : identifiers) {
+         for (auto id : q2.get_ids()) {
             auto metadata = q2.get_metadata(id);
+            print_dict(metadata);
+        }
+        for (unsigned i = 0; i < 100; ++i) {
+            auto metadata = q2.get_metadata(dummy_id);
             print_dict(metadata);
         }
     }

@@ -10,7 +10,6 @@ DummyQuerier::DummyQuerier(string& auditfile) {
 map<string, string> DummyQuerier::get_metadata(string& identifier) {
     return metadata_->get_metadata(identifier);
 }
-// TODO change signatures to return graph
 vector<Node_Id> DummyQuerier::get_all_ancestors(string& identifier) {
     (void)identifier;
     return {};
@@ -35,6 +34,9 @@ vector<vector<Node_Id>> DummyQuerier::all_paths(string& sourceid, string& sinkid
 void DummyQuerier::friends_of(string& identifier) {
     (void)identifier;
 }
+vector<string> DummyQuerier::get_ids() {
+    return metadata_->get_ids();
+}
 
 /*
  * Querier on Compressed Graph and Metadata
@@ -48,7 +50,6 @@ CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
 map<string, string> CompressedQuerier::get_metadata(string& identifier) {
     return metadata_->get_metadata(identifier);
 }
-// TODO change signatures to return graph
 vector<Node_Id> CompressedQuerier::get_all_ancestors(string& identifier) {
     Node_Id node = metadata_->get_node_id(identifier);
     return graph->get_all_ancestors(node);
@@ -73,3 +74,7 @@ vector<vector<Node_Id>> CompressedQuerier::all_paths(string& sourceid, string& s
 void CompressedQuerier::friends_of(string& identifier) {
     (void)identifier;
 }
+vector<string> CompressedQuerier::get_ids() {
+    return metadata_->get_ids();
+}
+

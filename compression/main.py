@@ -9,15 +9,15 @@ def main():
     if len(sys.argv) == 1:
         infile = pj.PATH+"/tmp/audit.log"
         outfile = pj.PATH+"/compressed_metadata.txt"
-        graph_out = pj.PATH+"/graph.cpg"
+        graph_out = pj.PATH+"/graph"
     elif len(sys.argv) == 2:
         infile = sys.argv[1]
         outfile = pj.PATH+"/compressed_metadata.txt"
-        graph_out = pj.PATH+"/graph.cpg"
+        graph_out = pj.PATH+"/graph"
     elif len(sys.argv) == 3:
         infile = sys.argv[1]
         outfile = sys.argv[2]
-        graph_out = outfile + ".cpg" 
+        graph_out = outfile 
     else:
         print("Usage: ./process_json.py [infile] [outfile]")
         sys.exit(1)

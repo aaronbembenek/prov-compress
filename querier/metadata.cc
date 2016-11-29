@@ -77,43 +77,23 @@ CompressedMetadata::CompressedMetadata(string& infile) {
 
 void CompressedMetadata::construct_identifiers_dict() {
     string buffer, default_id, id;
-    size_t default_len, cur_pos;
     vector<string> encoded_ids;
 
     read_file(IDENTIFIERS_FILE, buffer);
-
-    BitSet bs(buffer);
+    
+	string substr = buffer.substr(0, 32);
+    string rest = buffer.substr(32);
+    BitSet bs(substr);
     bs.get_bits(num_nodes, 32, 0);
-    cur_pos = 32;
     id_bits = nbits_for_int(num_nodes);
 
-    bs.get_bits(default_len, 32, cur_pos);
-    cur_pos += 32;
-
-    bs.get_bits_as_str(default_id, default_len*8, cur_pos);
-    cur_pos += default_len*8;
-
-    size_t offset, num_diffs, id_index = 0;
-    char ch;
-    while(cur_pos < buffer.length()*8) {
-        id = default_id;
-        bs.get_bits<size_t>(num_diffs, 8, cur_pos);
-        cur_pos += 8;
-        for (size_t i = 0; i < num_diffs; ++i) {
-            bs.get_bits<size_t>(offset, 8, cur_pos);
-            cur_pos += 8;
-            bs.get_bits<char>(ch, 8, cur_pos);
-            cur_pos += 8;
-            id[offset] = ch;
-        }
-        if (id_index < num_nodes) {
-            // not yet set for relations
-            intid2id[id_index] = id; 
-            id2intid[id] = id_index; 
-        }
-        identifiers.push_back(id);
-        id_index++;
-    }
+    identifiers = split(rest, ',');
+    for (size_t i = 0; i < num_nodes; ++i) {
+        // not yet set for relations
+        intid2id[i] = identifiers[i]; 
+        id2intid[identifiers[i]] = i; 
+	}
+    print_dict(intid2id);
 }
 
 void CompressedMetadata::construct_prov_dicts() {

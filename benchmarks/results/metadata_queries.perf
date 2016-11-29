@@ -1,0 +1,50 @@
+results/face_recognition.py.prov
+
+real	0m0.090s
+user	0m0.064s
+sys	0m0.024s
+results/plot_model_complexity_influence.py.prov
+
+real	0m0.197s
+user	0m0.176s
+sys	0m0.020s
+results/plot_outlier_detection_housing.py.prov
+
+real	0m0.110s
+user	0m0.092s
+sys	0m0.016s
+results/plot_out_of_core_classification.py.prov
+
+real	0m0.048s
+user	0m0.032s
+sys	0m0.012s
+results/plot_prediction_latency.py.prov
+
+real	0m0.154s
+user	0m0.128s
+sys	0m0.024s
+results/plot_species_distribution_modeling.py.prov
+
+real	0m0.082s
+user	0m0.072s
+sys	0m0.008s
+results/plot_stock_market.py.prov
+
+real	0m0.179s
+user	0m0.156s
+sys	0m0.020s
+results/plot_tomography_l1_reconstruction.py.prov
+
+real	0m0.057s
+user	0m0.048s
+sys	0m0.008s
+results/svm_gui.py.prov
+
+real	0m0.058s
+user	0m0.056s
+sys	0m0.000s
+results/topics_extraction_with_nmf_lda.py.prov
+
+real	0m0.059s
+user	0m0.052s
+sys	0m0.004s

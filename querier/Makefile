@@ -3,7 +3,7 @@ CCFLAGS =
 CXX = g++
 CXXFLAGS = -std=gnu++0x -g 
 OPTFLAGS = -W -Wall -O3
-OBJS = helpers.o queriers.o metadata.o clp.o jsoncpp.o
+OBJS = helpers.o queriers.o metadata.o clp.o jsoncpp.o graph.o graph_v1.o
 DEPS = $(OBJS)
 
 %.o: %.c

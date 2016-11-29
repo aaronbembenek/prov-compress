@@ -2,6 +2,7 @@
 #define META_H
 
 #include "helpers.hh"
+#include "graph.hh"
 
 class MetadataInterface {
     virtual map<string, string> get_metadata(string& identifier) = 0;
@@ -59,6 +60,9 @@ private:
 public:
     CompressedMetadata(string& infile);
     map<string, string> get_metadata(string& identifier) override;
+    Node_Id get_node_id(string& identifier) {
+        return (Node_Id) id2intid[identifier];
+    }
 
 private: // helper functions
     void construct_identifiers_dict();

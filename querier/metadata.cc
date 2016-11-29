@@ -1,6 +1,10 @@
 #include "metadata.hh"
 #include "json/json.h"
 
+vector<string> MetadataInterface::get_ids() {
+    return identifiers;
+}
+
 /* DUMMY IMPLEMENTATION */
 DummyMetadata::DummyMetadata(string& infile) {
     Json::Reader reader;
@@ -33,6 +37,7 @@ DummyMetadata::DummyMetadata(string& infile) {
                 for (auto id : ids) {
                     json_typ[id]["typ"] = typ;
                     id2jsonstr[id] = fastWriter.write(json_typ[id]);
+                    identifiers.push_back(id);
                 }
             }
         }
@@ -77,43 +82,23 @@ CompressedMetadata::CompressedMetadata(string& infile) {
 
 void CompressedMetadata::construct_identifiers_dict() {
     string buffer, default_id, id;
-    size_t default_len, cur_pos;
     vector<string> encoded_ids;
 
     read_file(IDENTIFIERS_FILE, buffer);
-
-    BitSet bs(buffer);
+    
+	string substr = buffer.substr(0, 32);
+    string rest = buffer.substr(32);
+    BitSet bs(substr);
     bs.get_bits(num_nodes, 32, 0);
-    cur_pos = 32;
     id_bits = nbits_for_int(num_nodes);
 
-    bs.get_bits(default_len, 32, cur_pos);
-    cur_pos += 32;
-
-    bs.get_bits_as_str(default_id, default_len*8, cur_pos);
-    cur_pos += default_len*8;
-
-    size_t offset, num_diffs, id_index = 0;
-    char ch;
-    while(cur_pos < buffer.length()*8) {
-        id = default_id;
-        bs.get_bits<size_t>(num_diffs, 8, cur_pos);
-        cur_pos += 8;
-        for (size_t i = 0; i < num_diffs; ++i) {
-            bs.get_bits<size_t>(offset, 8, cur_pos);
-            cur_pos += 8;
-            bs.get_bits<char>(ch, 8, cur_pos);
-            cur_pos += 8;
-            id[offset] = ch;
-        }
-        if (id_index < num_nodes) {
-            // not yet set for relations
-            intid2id[id_index] = id; 
-            id2intid[id] = id_index; 
-        }
-        identifiers.push_back(id);
-        id_index++;
-    }
+    identifiers = split(rest, ',');
+    for (size_t i = 0; i < num_nodes; ++i) {
+        // not yet set for relations
+        nodeid2id[i] = identifiers[i]; 
+        id2nodeid[identifiers[i]] = i; 
+	}
+    print_dict(nodeid2id);
 }
 
 void CompressedMetadata::construct_prov_dicts() {
@@ -236,24 +221,24 @@ void CompressedMetadata::construct_metadata_dict(string& infile) {
         }
     }
 
-    // go through all node data, creating a map from intid to index of string 
+    // go through all node data, creating a map from nodeid to index of string 
     for (size_t i = 0; i < num_nodes; ++i) {
-        intid2dataindex[i] = cur_pos;
+        nodeid2dataindex[i] = cur_pos;
         cur_pos = find_next_entry(cur_pos);
     }
-    // go through all relation data, creating a map from intid to index of string 
+    // go through all relation data, creating a map from nodeid to index of string 
     int relation_id;
     int num_relations = 0;
     while(cur_pos < total_size) {
         metadata_bs->get_bits<int>(relation_id, 2*id_bits, cur_pos);
         cur_pos += 2*id_bits;
 
-        intid2dataindex[relation_id] = cur_pos;
+        nodeid2dataindex[relation_id] = cur_pos;
 
         cur_pos = find_next_entry(cur_pos);
 
-        id2intid[identifiers[num_nodes + num_relations]] = relation_id;
-        intid2id[relation_id] = identifiers[num_nodes + num_relations];
+        id2nodeid[identifiers[num_nodes + num_relations]] = relation_id;
+        nodeid2id[relation_id] = identifiers[num_nodes + num_relations];
         num_relations++;
     }
     assert(cur_pos == total_size);
@@ -263,18 +248,18 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     map<string, string> metadata;
     size_t cur_pos, val_size, date_index;
     unsigned char key, encoded_val, typ;
-    int int_val, intid;
+    int int_val, nodeid;
     string str_val;
 
     size_t num_equal_keys, num_encoded_keys, num_other_keys, num_diff_dates;
     vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys, &num_diff_dates};
 
-    auto my_intid = id2intid.find(identifier);
-    if (my_intid == id2intid.end()) {
+    auto my_nodeid = id2nodeid.find(identifier);
+    if (my_nodeid == id2nodeid.end()) {
         return metadata;
     }
 
-    cur_pos = intid2dataindex[my_intid->second];
+    cur_pos = nodeid2dataindex[my_nodeid->second];
 
     // get type
     metadata_bs->get_bits<unsigned char>(typ, typ_bits, cur_pos);
@@ -284,26 +269,26 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
 
     // get sender/receiver if a relation
     if (is_relation) {
-        intid = my_intid->second - num_nodes;
+        nodeid = my_nodeid->second - num_nodes;
         if (metadata["typ"] == "used") {
-            metadata["prov:entity"] = intid2id[intid >> id_bits];
-            metadata["prov:activity"] = intid2id[intid & ((1 << id_bits) - 1)]; 
+            metadata["prov:entity"] = nodeid2id[nodeid >> id_bits];
+            metadata["prov:activity"] = nodeid2id[nodeid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "wasGeneratedBy") {
-            metadata["prov:activity"] = intid2id[intid >> id_bits];
-            metadata["prov:entity"] = intid2id[intid & ((1 << id_bits) - 1)]; 
+            metadata["prov:activity"] = nodeid2id[nodeid >> id_bits];
+            metadata["prov:entity"] = nodeid2id[nodeid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "wasDerivedFrom") {
-            metadata["prov:usedEntity"] = intid2id[intid >> id_bits];
-            metadata["prov:generatedEntity"] = intid2id[intid & ((1 << id_bits) - 1)]; 
+            metadata["prov:usedEntity"] = nodeid2id[nodeid >> id_bits];
+            metadata["prov:generatedEntity"] = nodeid2id[nodeid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "wasInformedBy") {
-            metadata["prov:informant"]= intid2id[intid >> id_bits];
-            metadata["prov:informed"] = intid2id[intid & ((1 << id_bits) - 1)]; 
+            metadata["prov:informant"]= nodeid2id[nodeid >> id_bits];
+            metadata["prov:informed"] = nodeid2id[nodeid & ((1 << id_bits) - 1)]; 
         }
         else if (metadata["typ"] == "relation") {
-            metadata["cf:sender"] = intid2id[intid >> id_bits];
-            metadata["cf:receiver"] = intid2id[intid & ((1 << id_bits) - 1)]; 
+            metadata["cf:sender"] = nodeid2id[nodeid >> id_bits];
+            metadata["cf:receiver"] = nodeid2id[nodeid & ((1 << id_bits) - 1)]; 
         }
     }
 
@@ -387,9 +372,9 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     // else we need to encode equal keys in relation to another node or default
     auto relative = metadata.find(RELATIVE_NODE);
     map<string, string> relative_metadata;
-    if (relative != metadata.end() && relative->second != "=" && stoi(relative->second) != my_intid->second) {
+    if (relative != metadata.end() && relative->second != "=" && stoi(relative->second) != (int)my_nodeid->second) {
         // the node was encoded in relation to another node
-        relative_metadata = get_metadata(intid2id[stoi(relative->second)]);
+        relative_metadata = get_metadata(nodeid2id[stoi(relative->second)]);
     } else {
         // the node was encoded in relation to the default data
         relative_metadata = default_node_data; 

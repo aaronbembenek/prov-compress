@@ -5,10 +5,13 @@
 #include "graph.hh"
 
 class MetadataInterface {
+public:
+    vector<string> identifiers;
     virtual map<string, string> get_metadata(string& identifier) = 0;
+    virtual vector<string> get_ids();
 };
 
-class DummyMetadata : MetadataInterface {
+class DummyMetadata : public MetadataInterface {
     static vector<string> typs;
 private:
     map<string, string> id2jsonstr;
@@ -19,7 +22,7 @@ public:
 };
 
 
-class CompressedMetadata : MetadataInterface {
+class CompressedMetadata : public MetadataInterface {
 private:
     // hardcoded constants/dictionaries
     static const string PROV_DICTS_FILE;
@@ -37,16 +40,15 @@ private:
     map<unsigned char, string>key_dict;
     map<unsigned char, string>prov_label_dict;
     map<unsigned char, string>val_dict;
-    vector<string> identifiers;
     BitSet* metadata_bs;
 
     map<string, string>default_node_data;
     map<string, string>default_relation_data;
     vector<size_t>default_date;
-    map<int, size_t>intid2dataindex;
+    map<Node_Id, size_t>nodeid2dataindex;
     
-    map<string, int>id2intid;
-    map<int, string>intid2id;
+    map<string, Node_Id>id2nodeid;
+    map<Node_Id, string>nodeid2id;
 
     size_t node_type_bits;
     size_t typ_bits;
@@ -61,7 +63,7 @@ public:
     CompressedMetadata(string& infile);
     map<string, string> get_metadata(string& identifier) override;
     Node_Id get_node_id(string& identifier) {
-        return (Node_Id) id2intid[identifier];
+        return (Node_Id) id2nodeid[identifier];
     }
 
 private: // helper functions

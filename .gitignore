@@ -1,6 +1,7 @@
 # Custom
 *.out
 *.err
+*.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

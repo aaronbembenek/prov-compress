@@ -1,10 +1,10 @@
 #include "metadata.hh"
 #include "json/json.h"
 
-vector<string> MetadataInterface::get_ids() {
+vector<string> Metadata::get_ids() {
     return identifiers;
 }
-const set<string> MetadataInterface::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
+const set<string> Metadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 
 /* DUMMY IMPLEMENTATION */
 DummyMetadata::DummyMetadata(string& infile) {
@@ -13,6 +13,8 @@ DummyMetadata::DummyMetadata(string& infile) {
     Json::Value root;
     Json::Value json_typ;
     size_t pos;
+    size_t ctr = 0;
+    num_nodes = 0;
 
     ifstream input(infile);
     for (string line; getline(input, line);) {
@@ -39,10 +41,18 @@ DummyMetadata::DummyMetadata(string& infile) {
                     json_typ[id]["typ"] = typ;
                     id2jsonstr[id] = fastWriter.write(json_typ[id]);
                     identifiers.push_back(id);
+                   
+                    // set identifier to id mapping
+                    nodeid2id[ctr] = id;
+                    id2nodeid[id] = ctr++;
+                    
+                    // count number of nodes
+                    if (!RELATION_TYPS.count(typ)) {
+                        num_nodes++;
+                    }
                 }
             }
         }
-
     }
 };
 
@@ -69,6 +79,9 @@ map<string, string> DummyMetadata::get_metadata(string& identifier) {
     }
     return m;
 }
+Node_Id DummyMetadata::get_node_id(string identifer) { return id2nodeid[identifer]; }
+string DummyMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
+
 vector<string> DummyMetadata::typs = {"prefix", "activity", "relation", "entity", "agent", "message", "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom","unknown"};
 
 
@@ -387,6 +400,8 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     }
     return metadata;
 }
+Node_Id CompressedMetadata::get_node_id(string identifer) { return id2nodeid[identifer]; }
+string CompressedMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
 
 const string CompressedMetadata::PROV_DICTS_FILE = "../compression/prov_data_dicts.txt";
 const string CompressedMetadata::IDENTIFIERS_FILE = "../compression/identifiers.txt";

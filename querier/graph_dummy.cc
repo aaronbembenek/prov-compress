@@ -4,10 +4,9 @@
 
 #include <iostream>
 
-Graph_Dummy::Graph_Dummy(DummyMetadata* metadata) : metadata_(metadata) {
+DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
     map<string, string> node_md;
     string typ, head, tail;
-    vector<string> dests;
     
     vector<string> identifiers = metadata_->get_ids();
 
@@ -36,25 +35,26 @@ Graph_Dummy::Graph_Dummy(DummyMetadata* metadata) : metadata_(metadata) {
 				head = node_md["cf:sender"];
 				tail = node_md["cf:receiver"];
 			}
-            graph_[head].push_back(tail);
-            tgraph_[tail].push_back(head);
+            graph_[metadata_->get_node_id(head)].push_back(metadata_->get_node_id(tail));
+            tgraph_[metadata_->get_node_id(tail)].push_back(metadata_->get_node_id(head));
 		} else {
             // make sure we have an entry for every identifier
-            graph_[id];
-            tgraph_[id];
+            graph_[metadata_->get_node_id(id)];
+            tgraph_[metadata_->get_node_id(id)];
         }
 	}
 }
 
-vector<Node_Id> Graph_Dummy::get_outgoing_edges(Node_Id node) {
-    
+vector<Node_Id> DummyGraph::get_outgoing_edges(Node_Id node) {
+    return graph_[node];
 }
 
-vector<Node_Id> Graph_Dummy::get_incoming_edges(Node_Id node) {
+vector<Node_Id> DummyGraph::get_incoming_edges(Node_Id node) {
+    return tgraph_[node];
 }
 
-size_t Graph_Dummy::get_node_count() {
-    return 0;
+size_t DummyGraph::get_node_count() {
+    return metadata_->num_nodes;
 }
 
-Graph_Dummy::~Graph_Dummy() {}
+DummyGraph::~DummyGraph() {}

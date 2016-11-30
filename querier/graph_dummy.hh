@@ -7,17 +7,17 @@
 
 #include <string>
 
-class Graph_Dummy : public Graph {
+class DummyGraph : public Graph {
     public:
-        Graph_Dummy(DummyMetadata* metadata);
-        ~Graph_Dummy();
+        DummyGraph(Metadata* metadata);
+        ~DummyGraph();
         std::vector<Node_Id> get_outgoing_edges(Node_Id) override;
         std::vector<Node_Id> get_incoming_edges(Node_Id) override;
         size_t get_node_count() override;
     private:
-        DummyMetadata* metadata_;
-        map<string, vector<string>> graph_;
-        map<string, vector<string>> tgraph_;
+        Metadata* metadata_;
+        map<Node_Id, vector<Node_Id>> graph_;
+        map<Node_Id, vector<Node_Id>> tgraph_;
 };
 
 #endif

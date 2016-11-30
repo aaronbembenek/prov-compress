@@ -17,48 +17,30 @@
 
 class Querier {
 public:
-    virtual map<string, string> get_metadata(string& identifier) = 0;
-    virtual vector<Node_Id> get_all_ancestors(string& identifier) = 0;
-    virtual vector<Node_Id> get_direct_ancestors(string& identifier) = 0;
-    virtual vector<Node_Id> get_all_descendants(string& identifier) = 0;
-    virtual vector<Node_Id> get_direct_descendants(string& identifier) = 0;
-    virtual vector<vector<Node_Id>> all_paths(string& sourceid, string& sinkid) = 0;
-    virtual void friends_of(string& identifier) = 0;
-    virtual vector<string> get_ids() = 0;
+    Querier() {};
+    Querier(Metadata* metadata_, Graph* graph_);
+    map<string, string> get_metadata(string& identifier);
+    vector<string> get_all_ancestors(string& identifier);
+    vector<string> get_direct_ancestors(string& identifier);
+    vector<string> get_all_descendants(string& identifier);
+    vector<string> get_direct_descendants(string& identifier);
+    vector<vector<string>> all_paths(string& sourceid, string& sinkid);
+    void friends_of(string& identifier);
+    vector<string> get_ids();
+    
+protected:
+    Metadata* metadata_;
+    Graph* graph_;
 };
 
-class DummyQuerier : Querier {
+class DummyQuerier : public Querier {
 public:
     DummyQuerier(string& auditfile);
-    map<string, string> get_metadata(string& identifier) override;
-    vector<Node_Id> get_all_ancestors(string& identifier) override;
-    vector<Node_Id> get_direct_ancestors(string& identifier) override;
-    vector<Node_Id> get_all_descendants(string& identifier) override;
-    vector<Node_Id> get_direct_descendants(string& identifier) override;
-    vector<vector<Node_Id>> all_paths(string& sourceid, string& sinkid) override;
-    void friends_of(string& identifier) override;
-    vector<string> get_ids() override;
-    
-private:
-    DummyMetadata* metadata_;
-    Graph_Dummy* graph_;
 };
 
-class CompressedQuerier: Querier {
+class CompressedQuerier: public Querier {
 public:
     CompressedQuerier(string& metafile, string& graphfile);
-    map<string, string> get_metadata(string& identifier) override;
-    vector<Node_Id> get_all_ancestors(string& identifier) override;
-    vector<Node_Id> get_direct_ancestors(string& identifier) override;
-    vector<Node_Id> get_all_descendants(string& identifier) override;
-    vector<Node_Id> get_direct_descendants(string& identifier) override;
-    vector<vector<Node_Id>> all_paths(string& sourceid, string& sinkid) override;
-    void friends_of(string& identifier) override;
-    vector<string> get_ids() override;
-    
-private:
-    CompressedMetadata* metadata_;
-    Graph* graph;
 };
 
 #endif /* QUERY_H */

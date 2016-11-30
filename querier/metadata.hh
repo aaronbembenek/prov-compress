@@ -4,27 +4,36 @@
 #include "helpers.hh"
 #include "graph.hh"
 
-class MetadataInterface {
+class Metadata {
 public:
     static const set<string> RELATION_TYPS;
+    size_t num_nodes;
 
     vector<string> identifiers;
     virtual map<string, string> get_metadata(string& identifier) = 0;
-    virtual vector<string> get_ids();
+    virtual Node_Id get_node_id(string) = 0;
+    virtual string get_identifier(Node_Id) = 0;
+    
+    vector<string> get_ids();
 };
 
-class DummyMetadata : public MetadataInterface {
+class DummyMetadata : public Metadata {
     static vector<string> typs;
+public:
 private:
     map<string, string> id2jsonstr;
+    map<string, Node_Id>id2nodeid;
+    map<Node_Id, string>nodeid2id;
 
 public:
     DummyMetadata(string& infile);
     map<string, string> get_metadata(string& identifier) override;
+    Node_Id get_node_id(string) override;
+    string get_identifier(Node_Id) override;
 };
 
 
-class CompressedMetadata : public MetadataInterface {
+class CompressedMetadata : public Metadata {
 private:
     // hardcoded constants/dictionaries
     static const string PROV_DICTS_FILE;
@@ -47,9 +56,6 @@ private:
     map<string, string>default_relation_data;
     vector<size_t>default_date;
     map<Node_Id, size_t>nodeid2dataindex;
-    
-    map<string, Node_Id>id2nodeid;
-    map<Node_Id, string>nodeid2id;
 
     size_t node_type_bits;
     size_t typ_bits;
@@ -58,14 +64,15 @@ private:
     size_t val_bits;
     size_t id_bits;
     size_t date_type_bits;
-    size_t num_nodes;
+
+    map<string, Node_Id>id2nodeid;
+    map<Node_Id, string>nodeid2id;
 
 public:
     CompressedMetadata(string& infile);
     map<string, string> get_metadata(string& identifier) override;
-    Node_Id get_node_id(string& identifier) {
-        return (Node_Id) id2nodeid[identifier];
-    }
+    Node_Id get_node_id(string) override;
+    string get_identifier(Node_Id) override;
 
 private: // helper functions
     void construct_identifiers_dict();

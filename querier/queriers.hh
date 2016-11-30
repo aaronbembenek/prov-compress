@@ -3,6 +3,7 @@
 
 #include "helpers.hh"
 #include "metadata.hh"
+#include "graph_dummy.hh"
 
 /*
     SUPPORTED QUERIES:
@@ -40,6 +41,7 @@ public:
     
 private:
     DummyMetadata* metadata_;
+    Graph_Dummy* graph_;
 };
 
 class CompressedQuerier: Querier {

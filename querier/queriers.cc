@@ -1,4 +1,5 @@
 #include "graph_v1.hh"
+#include "graph_dummy.hh"
 #include "queriers.hh"
 
 /*
@@ -6,6 +7,7 @@
  */
 DummyQuerier::DummyQuerier(string& auditfile) {
     metadata_ = new DummyMetadata(auditfile);
+    graph_ = new Graph_Dummy(metadata_);
 }
 map<string, string> DummyQuerier::get_metadata(string& identifier) {
     return metadata_->get_metadata(identifier);

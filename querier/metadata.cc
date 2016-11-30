@@ -4,6 +4,7 @@
 vector<string> MetadataInterface::get_ids() {
     return identifiers;
 }
+const set<string> MetadataInterface::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 
 /* DUMMY IMPLEMENTATION */
 DummyMetadata::DummyMetadata(string& infile) {
@@ -390,6 +391,5 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
 const string CompressedMetadata::PROV_DICTS_FILE = "../compression/prov_data_dicts.txt";
 const string CompressedMetadata::IDENTIFIERS_FILE = "../compression/identifiers.txt";
 const string CompressedMetadata::RELATIVE_NODE = "@";
-const set<string> CompressedMetadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 const vector<size_t> CompressedMetadata::DATE_BITS = {12,4,5,5,6,6};
 const size_t CompressedMetadata::DATE_TYPE_BITS = nbits_for_int(CompressedMetadata::DATE_BITS.size());

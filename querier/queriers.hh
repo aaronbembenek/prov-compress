@@ -18,7 +18,6 @@
 class Querier {
 public:
     Querier() {};
-    Querier(Metadata* metadata_, Graph* graph_);
     map<string, string> get_metadata(string& identifier);
     vector<string> get_all_ancestors(string& identifier);
     vector<string> get_direct_ancestors(string& identifier);

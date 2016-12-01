@@ -46,10 +46,12 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
 }
 
 vector<Node_Id> DummyGraph::get_outgoing_edges(Node_Id node) {
+    assert(node < get_node_count());
     return graph_[node];
 }
 
 vector<Node_Id> DummyGraph::get_incoming_edges(Node_Id node) {
+    assert(node < get_node_count());
     return tgraph_[node];
 }
 

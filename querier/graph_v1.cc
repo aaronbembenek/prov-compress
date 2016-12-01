@@ -64,11 +64,13 @@ vector<Node_Id> Graph_V1::get_edges(Node_Id node, size_t pos,
 }
 
 vector<Node_Id> Graph_V1::get_outgoing_edges(Node_Id node) {
+    assert(node < get_node_count());
     return get_edges(node, index[node] + base_pos, nbits_outdegree,
             nbits_outdelta);
 }
 
 vector<Node_Id> Graph_V1::get_incoming_edges(Node_Id node) {
+    assert(node < get_node_count());
     size_t pos = index[node] + base_pos;
     size_t degree;
     pos += data.get_bits<size_t>(degree, nbits_outdegree, pos);

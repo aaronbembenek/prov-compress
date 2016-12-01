@@ -78,12 +78,12 @@ map<string, string> DummyMetadata::get_metadata(string& identifier) {
     auto keys = root.getMemberNames();
     for (auto k: keys) {
         string val = fastWriter.write(root[k]);
-        val.erase(remove(val.begin(), val.end(), '\n'), val.end());
-        m[k] = val;
+        remove_char(val, '"'); 
+        m[k] = val.substr(0, val.length()-1);
     }
     return m;
 }
-Node_Id DummyMetadata::get_node_id(string identifer) { return id2nodeid[identifer]; }
+Node_Id DummyMetadata::get_node_id(string identifier) { return id2nodeid[identifier]; }
 string DummyMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
 
 vector<string> DummyMetadata::typs = {"prefix", "activity", "relation", "entity", "agent", "message", "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom","unknown"};

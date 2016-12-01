@@ -92,24 +92,23 @@ int main(int argc, char *argv[]) {
         DummyQuerier q2(auditfile);
         for (auto id : q2.get_node_ids()) {
             auto metadata = q2.get_metadata(id);
-            //print_dict(metadata);
             str_vector = q2.get_all_ancestors(id);
-            //cout<< str_vector.size() << endl;
             print_str_vector(str_vector);
-            (q2.get_direct_ancestors(id));
+            q2.get_direct_ancestors(id);
             (q2.get_all_descendants(id));
             (q2.get_direct_descendants(id));
             (q2.all_paths(id, id));
             (q2.friends_of(id));
         }
         for (unsigned i = 0; i < 100; ++i) {
+            /*
             auto metadata = q2.get_metadata(dummy_id);
             (q2.get_all_ancestors(dummy_id));
             (q2.get_direct_ancestors(dummy_id));
             (q2.get_all_descendants(dummy_id));
             (q2.get_direct_descendants(dummy_id));
             (q2.all_paths(dummy_id, dummy_id));
-            (q2.friends_of(dummy_id));
+            (q2.friends_of(dummy_id));*/
         }
     }
     return 0;

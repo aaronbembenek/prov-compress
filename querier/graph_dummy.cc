@@ -13,7 +13,6 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
     for (auto id : identifiers) {
         node_md = metadata_->get_metadata(id);
         auto typ_it = metadata_->RELATION_TYPS.find(node_md["typ"]);
-        cout << node_md["typ"] << " " << (node_md["typ"].compare("entity")) << *typ_it << endl;
         if (typ_it != metadata_->RELATION_TYPS.end()) {
             typ = *typ_it;
 			if (typ == "used") {
@@ -38,10 +37,6 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
 			}
             graph_[metadata_->get_node_id(head)].push_back(metadata_->get_node_id(tail));
             tgraph_[metadata_->get_node_id(tail)].push_back(metadata_->get_node_id(head));
-            cout << "PUSHED" << endl;
-            for (auto p: graph_) {
-                cout << p.first << " " << (p.second).size() << endl;
-            }
 		} else {
             // make sure we have an entry for every identifier
             graph_[metadata_->get_node_id(id)];
@@ -54,12 +49,10 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
 }
 
 vector<Node_Id> DummyGraph::get_outgoing_edges(Node_Id node) {
-    assert(node < get_node_count());
     return graph_[node];
 }
 
 vector<Node_Id> DummyGraph::get_incoming_edges(Node_Id node) {
-    assert(node < get_node_count());
     return tgraph_[node];
 }
 

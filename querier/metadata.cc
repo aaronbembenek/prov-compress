@@ -1,9 +1,11 @@
 #include "metadata.hh"
 #include "json/json.h"
 
-vector<string> Metadata::get_ids() {
-    return identifiers;
+vector<string> Metadata::get_node_ids() {
+    vector<string> v(identifiers.begin(), identifiers.begin() + num_nodes);
+    return v;
 }
+
 const set<string> Metadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 
 /* DUMMY IMPLEMENTATION */
@@ -75,7 +77,9 @@ map<string, string> DummyMetadata::get_metadata(string& identifier) {
     }
     auto keys = root.getMemberNames();
     for (auto k: keys) {
-        m[k] = fastWriter.write(root[k]);
+        string val = fastWriter.write(root[k]);
+        val.erase(remove(val.begin(), val.end(), '\n'), val.end());
+        m[k] = val;
     }
     return m;
 }

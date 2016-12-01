@@ -75,8 +75,8 @@ vector<vector<string>> Querier::all_paths(string& sourceid, string& sinkid) {
 void Querier::friends_of(string& identifier) {
     (void)identifier;
 }
-vector<string> Querier::get_ids() {
-    return metadata_->get_ids();
+vector<string> Querier::get_node_ids() {
+    return metadata_->get_node_ids();
 }
 
 

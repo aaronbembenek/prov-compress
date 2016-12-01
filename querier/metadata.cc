@@ -100,8 +100,8 @@ void CompressedMetadata::construct_identifiers_dict() {
 
     read_file(IDENTIFIERS_FILE, buffer);
     
-	string substr = buffer.substr(0, 32);
-    string rest = buffer.substr(32);
+	string substr = buffer.substr(0, 4);
+    string rest = buffer.substr(4);
     BitSet bs(substr);
     bs.get_bits(num_nodes, 32, 0);
     id_bits = nbits_for_int(num_nodes);

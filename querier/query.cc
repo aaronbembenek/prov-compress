@@ -3,7 +3,7 @@
 
 bool compressed = false;
 string metafile = "../compression/compressed_metadata.txt";
-string graphfile = "../compression/compressed_graphdata.txt";
+string graphfile = "../compression/graph.cpg";
 string auditfile = "/tmp/audit.log";
 
 enum {

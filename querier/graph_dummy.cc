@@ -43,9 +43,6 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
             tgraph_[metadata_->get_node_id(id)];
         }
 	}
-    for (auto p: graph_) {
-        cout << p.first << " " << (p.second).size() << endl;
-    }
 }
 
 vector<Node_Id> DummyGraph::get_outgoing_edges(Node_Id node) {

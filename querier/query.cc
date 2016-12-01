@@ -92,13 +92,20 @@ int main(int argc, char *argv[]) {
         DummyQuerier q2(auditfile);
         for (auto id : q2.get_node_ids()) {
             auto metadata = q2.get_metadata(id);
-            str_vector = q2.get_all_ancestors(id);
-            print_str_vector(str_vector);
-            q2.get_direct_ancestors(id);
-            (q2.get_all_descendants(id));
-            (q2.get_direct_descendants(id));
-            (q2.all_paths(id, id));
-            (q2.friends_of(id));
+            cout << "\nNEW ID " << id << endl;
+            cout << metadata["cf:id"] << endl;
+            //str_vector = q2.get_all_ancestors(id);
+            //str_vector = (q2.get_direct_ancestors(id));
+            //str_vector = (q2.get_all_descendants(id));
+            //str_vector = (q2.get_direct_descendants(id));
+            //(q2.friends_of(id));
+            string s1 = "AQAAAAAAAECT0wEAAAAAADsFMvWRTtonAQAAAAAAAAA=";
+            string s2 = "AAAIAAAAACCR0wEAAAAAADsFMvWRTtonAAAAAAAAAAA=";
+            vector<vector<string>> str_vectors = q2.all_paths(s2, s1);
+            for (auto sv : str_vectors) {
+                print_str_vector(sv);
+            }
+            //print_str_vector(str_vector);
         }
         for (unsigned i = 0; i < 100; ++i) {
             /*

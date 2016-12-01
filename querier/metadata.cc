@@ -17,6 +17,7 @@ DummyMetadata::DummyMetadata(string& infile) {
     size_t pos;
     size_t ctr = 0;
     num_nodes = 0;
+    vector<string> relation_ids;
 
     ifstream input(infile);
     for (string line; getline(input, line);) {
@@ -42,7 +43,6 @@ DummyMetadata::DummyMetadata(string& infile) {
                 for (auto id : ids) {
                     json_typ[id]["typ"] = typ;
                     id2jsonstr[id] = fastWriter.write(json_typ[id]);
-                    identifiers.push_back(id);
                    
                     // set identifier to id mapping
                     nodeid2id[ctr] = id;
@@ -50,12 +50,16 @@ DummyMetadata::DummyMetadata(string& infile) {
                     
                     // count number of nodes
                     if (!RELATION_TYPS.count(typ)) {
+                        identifiers.push_back(id);
                         num_nodes++;
+                    } else {
+                        relation_ids.push_back(id);
                     }
                 }
             }
         }
     }
+    identifiers.insert( identifiers.end(), relation_ids.begin(), relation_ids.end() );
 };
 
 map<string, string> DummyMetadata::get_metadata(string& identifier) {
@@ -116,7 +120,6 @@ void CompressedMetadata::construct_identifiers_dict() {
         nodeid2id[i] = identifiers[i]; 
         id2nodeid[identifiers[i]] = i; 
 	}
-    print_dict(nodeid2id);
 }
 
 void CompressedMetadata::construct_prov_dicts() {

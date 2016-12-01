@@ -1,7 +1,10 @@
 #include "helpers.hh"
 
-map<string, int> id2intid;
-map<int, string> intid2id;
+void print_str_vector(vector<string> v) {
+    for (auto i = v.begin(); i != v.end(); ++i) {
+        cout << *i << endl;
+    }
+}
 
 size_t nbits_for_int(int i) {
     assert(i >= 0);

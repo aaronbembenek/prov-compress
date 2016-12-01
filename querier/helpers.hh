@@ -35,6 +35,7 @@ string remove_char(string str, char ch);
 string read_file(string filename, string& str);
 template <typename K, typename V>
 void print_dict(map<K, V>& dict);
+void print_str_vector(vector<string> v);
 template <typename K>
 void set_dict_entries(map<K, string>& dict, string str, int val_type_base);
 

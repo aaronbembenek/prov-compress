@@ -71,21 +71,41 @@ int main(int argc, char *argv[]) {
         // test on all identifiers
         for (auto id : q1.get_ids()) {
             auto metadata = q1.get_metadata(id);
-            print_dict(metadata);
+            print_str_vector(q1.get_all_ancestors(id));
+            print_str_vector(q1.get_direct_ancestors(id));
+            print_str_vector(q1.get_all_descendants(id));
+            print_str_vector(q1.get_direct_descendants(id));
+            (q1.all_paths(id, id));
+            (q1.friends_of(id));
         }
         for (unsigned i = 0; i < 100; ++i) {
             auto metadata = q1.get_metadata(dummy_id);
-            print_dict(metadata);
+            print_str_vector(q1.get_all_ancestors(dummy_id));
+            print_str_vector(q1.get_direct_ancestors(dummy_id));
+            print_str_vector(q1.get_all_descendants(dummy_id));
+            print_str_vector(q1.get_direct_descendants(dummy_id));
+            (q1.all_paths(dummy_id, dummy_id));
+            (q1.friends_of(dummy_id));
         }
     } else {
         DummyQuerier q2(auditfile);
          for (auto id : q2.get_ids()) {
             auto metadata = q2.get_metadata(id);
-            print_dict(metadata);
+            print_str_vector(q2.get_all_ancestors(id));
+            print_str_vector(q2.get_direct_ancestors(id));
+            print_str_vector(q2.get_all_descendants(id));
+            print_str_vector(q2.get_direct_descendants(id));
+            (q2.all_paths(id, id));
+            (q2.friends_of(id));
         }
         for (unsigned i = 0; i < 100; ++i) {
             auto metadata = q2.get_metadata(dummy_id);
-            print_dict(metadata);
+            print_str_vector(q2.get_all_ancestors(dummy_id));
+            print_str_vector(q2.get_direct_ancestors(dummy_id));
+            print_str_vector(q2.get_all_descendants(dummy_id));
+            print_str_vector(q2.get_direct_descendants(dummy_id));
+            (q2.all_paths(dummy_id, dummy_id));
+            (q2.friends_of(dummy_id));
         }
     }
     return 0;

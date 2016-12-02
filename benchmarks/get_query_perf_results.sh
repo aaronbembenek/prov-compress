@@ -1,10 +1,8 @@
-file=results/metadata_queries.perf
-rm $file
-touch $file
+file=queries.perf
 
 for f in results/*.prov; do
     cd ../compression && ./main.py ../benchmarks/$f
     cd ../querier 
-    (echo $f) >> ../benchmarks/$file 2>&1
-    make && (time ./query -c &> /dev/null) >> ../benchmarks/$file 2>&1
+    perffile=$f.$file
+    make && ./query --auditfile=$f > ../benchmarks/$perffile
 done

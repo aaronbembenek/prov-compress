@@ -51,8 +51,9 @@ def json_to_graph_data(infile):
                         assert(typ == metadata[identifier].typ)
                         for d in data.keys():
                             if (metadata[identifier].data[d] != data[d]):
-                                print("Different Metadata!")
-                                print(identifier, d, metadata[identifier].data[d], data[d])
+                                pass # XXX 
+                                #print("Different Metadata!")
+                                #print(identifier, d, metadata[identifier].data[d], data[d])
 
                     metadata[identifier] = Metadata(typ, data)
                     missing_nodes.discard(identifier)

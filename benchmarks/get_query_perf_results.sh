@@ -1,4 +1,4 @@
-file=queries.perf
+file=queries_perf.data
 
 for f in results/*.prov; do
     cd ../compression && ./main.py ../benchmarks/$f

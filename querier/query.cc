@@ -1,8 +1,6 @@
+#include "helpers.hh"
 #include "queriers.hh"
 #include "clp.h"
-#include <chrono> 
-
-#define NUM_REPS 1000
 
 string metafile = "../compression/compressed_metadata.txt";
 string graphfile = "../compression/graph.cpg";
@@ -31,21 +29,6 @@ Options:\n\
     metafile.c_str(), graphfile.c_str(), auditfile.c_str());
   exit(1);
 }
-
-template<typename TimeT = std::chrono::nanoseconds>
-struct measure
-{
-    template<typename T, typename F, typename ...Args>
-    static typename TimeT::rep execution(T& obj, F&& func, Args&&... args)
-    {
-        auto start = std::chrono::steady_clock::now();
-        for (auto i = 0; i < NUM_REPS; ++i) {
-            (obj.*func)(std::forward<Args>(args)...);
-        }
-        auto duration = std::chrono::duration_cast< TimeT> (std::chrono::steady_clock::now() - start);
-        return duration.count();
-    }
-};
 
 int main(int argc, char *argv[]) {
     Clp_Parser *clp = Clp_NewParser(argc, argv, arraysize(options), options);
@@ -87,13 +70,16 @@ int main(int argc, char *argv[]) {
         cout << "ID, Get_Metadata, Get_All_Ancestors, Get_Direct_Ancestors, Get_All_Descendants, Friends_Of, All_Paths" << endl;
         for (auto id : q.get_node_ids()) {
             cout << id;
-            cout << ", " << measure<>::execution(q, &Querier::get_metadata, id);
-            cout << ", " << measure<>::execution(q, &Querier::get_all_ancestors, id);
-            cout << ", " << measure<>::execution(q, &Querier::get_direct_ancestors, id);
-            cout << ", " << measure<>::execution(q, &Querier::get_all_descendants, id);
-            cout << ", " << measure<>::execution(q, &Querier::get_direct_descendants, id);
-            cout << ", " << measure<>::execution(q, &Querier::friends_of, id);
-            
+            vector<exec_stats<chrono::nanoseconds>> stats;
+            stats.push_back(measure<>::execution(q, &Querier::get_metadata, id));
+            stats.push_back(measure<>::execution(q, &Querier::get_all_ancestors, id));
+            stats.push_back(measure<>::execution(q, &Querier::get_direct_ancestors, id));
+            stats.push_back(measure<>::execution(q, &Querier::get_all_descendants, id));
+            stats.push_back(measure<>::execution(q, &Querier::get_direct_descendants, id));
+            stats.push_back(measure<>::execution(q, &Querier::friends_of, id));
+
+            // run all-paths
+            auto startvm = virtualmem_usage();
             auto start = std::chrono::steady_clock::now();
             for (auto i = 0; i < NUM_REPS; ++i) {
                 for (auto id2 : q.get_node_ids()) {
@@ -101,7 +87,17 @@ int main(int argc, char *argv[]) {
                 }
             }
             auto duration = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
+            auto endvm = virtualmem_usage();
+           
+            for (auto st : stats) {
+                cout << ", " << st.time;
+            }
             cout << ", " << duration.count() << endl;
+
+            for (auto st : stats) {
+                cout << ", " << st.vm_usage;
+            }
+            cout << ", " << endvm-startvm << endl;
         }
     }
     return 0;

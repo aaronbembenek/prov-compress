@@ -4,6 +4,7 @@
 #include<iostream>
 #include<fstream>
 #include<string>
+#include<cstring>
 #include<vector>
 #include<map>
 #include<set>
@@ -12,6 +13,9 @@
 #include<cassert>
 #include<cmath>
 #include<bitset>
+#include <chrono> 
+
+#define NUM_REPS 1000
 
 #define DICT_BEGIN '{'
 #define DICT_END '}'
@@ -21,6 +25,36 @@ using namespace std;
 // Dictionaries for identifiers
 extern map<string, int> id2intid;
 extern map<int, string> intid2id;
+
+/* BENCHMARKING HELPERS */
+template<typename TimeT = std::chrono::nanoseconds>
+struct exec_stats {
+    int vm_usage;
+    typename TimeT::rep time;
+};
+int parse_stats_line(char* line);
+int virtualmem_usage();
+
+template<typename TimeT = std::chrono::nanoseconds>
+struct measure
+{
+    template<typename T, typename F, typename ...Args>
+    static exec_stats<TimeT> execution(T& obj, F&& func, Args&&... args)
+    {
+        exec_stats<TimeT> st; 
+        auto startvm = virtualmem_usage();
+        auto start = std::chrono::steady_clock::now();
+        for (auto i = 0; i < NUM_REPS; ++i) {
+            (obj.*func)(std::forward<Args>(args)...);
+        }
+        auto duration = std::chrono::duration_cast< TimeT> (std::chrono::steady_clock::now() - start);
+        auto endvm = virtualmem_usage();
+        st.vm_usage = endvm-startvm; 
+        st.time = duration.count();
+        return st;
+    }
+};
+
 
 /* BITSTR HELPERS */
 size_t nbits_for_int(int i);

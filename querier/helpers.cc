@@ -1,5 +1,31 @@
 #include "helpers.hh"
 
+// This assumes that a digit will be found and the line ends in " Kb".
+int parse_stats_line(char* line){
+    int i = strlen(line);
+    const char* p = line;
+    while (*p <'0' || *p > '9') p++;
+    line[i-3] = '\0';
+    i = atoi(p);
+    return i;
+}
+
+// value is in KB
+int virtualmem_usage() { 
+    FILE* file = fopen("/proc/self/status", "r");
+    int result = -1;
+    char line[128];
+
+    while (fgets(line, 128, file) != NULL){
+        if (strncmp(line, "VmSize:", 7) == 0){
+            result = parse_stats_line(line);
+            break;
+        }
+    }
+    fclose(file);
+    return result;
+}
+
 void print_str_vector(vector<string> v) {
     for (auto i = v.begin(); i != v.end(); ++i) {
         cout << *i << endl;

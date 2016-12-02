@@ -24,7 +24,7 @@ public:
     vector<string> get_all_descendants(string& identifier);
     vector<string> get_direct_descendants(string& identifier);
     vector<vector<string>> all_paths(string& sourceid, string& sinkid);
-    void friends_of(string& identifier);
+    vector<string> friends_of(string& identifier);
     vector<string> get_node_ids();
     
 protected:

@@ -1,9 +1,6 @@
-#include "metadata.hh"
-#include "helpers.hh"
 #include "json_graph.hh"
 #include "json/json.h"
 
-/* DUMMY IMPLEMENTATION */
 JsonGraph::JsonGraph(string& infile) {
     Json::Reader reader;
     Json::FastWriter fastWriter;
@@ -34,7 +31,6 @@ JsonGraph::JsonGraph(string& infile) {
             json_typ = root.get(typ, "None");
             if (json_typ != "None") {
                 auto ids = json_typ.getMemberNames();
-                cout << typ << " " << ids.size() << endl;
                 for (auto id : ids) {
                     json_typ[id]["typ"] = typ;
                     id2jsonstr[id] = fastWriter.write(json_typ[id]);

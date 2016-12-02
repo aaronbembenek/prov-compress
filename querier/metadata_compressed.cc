@@ -1,11 +1,7 @@
 #include "metadata.hh"
-#include "json/json.h"
 
 const set<string> Metadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 
-/*************************************
- * COMPRESSED IMPLEMENTATION 
- *************************************/
 CompressedMetadata::CompressedMetadata(string& infile) {
     construct_identifiers_dict();
     construct_prov_dicts();
@@ -319,8 +315,8 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
 }
 Node_Id CompressedMetadata::get_node_id(string identifer) { return id2nodeid[identifer]; }
 string CompressedMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
-vector<string> CompressedMetadata::get_node_ids() { 
-    vector<string> v(identifiers.begin(), identifiers.begin() + num_nodes);
+vector<string> CompressedMetadata::get_node_ids() {
+    vector<string> v(identifiers.begin(), identifiers.begin()+num_nodes);
     return v;
 }
 

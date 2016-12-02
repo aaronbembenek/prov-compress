@@ -1,6 +1,6 @@
 #include "graph.hh"
 #include "graph_v1.hh"
-#include "graph_dummy.hh"
+#include "json_graph.hh"
 #include "metadata.hh"
 #include "helpers.hh"
 
@@ -54,10 +54,8 @@ int main(int argc, char* argv[]) {
     }
 
     string auditfile = "../hello_audit.log";
-    metadata = new DummyMetadata(auditfile);
-    graph = new DummyGraph(metadata);
-/*
-    for (auto id : metadata->get_ids(graph->get_node_count())) {
+    JsonGraph* jg = new JsonGraph(auditfile);
+    for (auto id : jg->get_node_ids()) {
         Node_Id i = metadata->get_node_id(id);
         cout << "NODE " << id << endl;
         cout << "Children:" << endl;
@@ -91,5 +89,4 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    */
 }

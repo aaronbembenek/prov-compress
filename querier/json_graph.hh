@@ -1,3 +1,6 @@
+#ifndef JSON_GRAPH_HH
+#define JSON_GRAPH_HH
+
 #include "metadata.hh"
 #include "graph.hh"
 
@@ -25,3 +28,5 @@ public:
     std::vector<Node_Id> get_incoming_edges(Node_Id);
     size_t get_node_count();
 };
+
+#endif

@@ -14,7 +14,7 @@ public:
     virtual Node_Id get_node_id(string) = 0;
     virtual string get_identifier(Node_Id) = 0;
     
-    vector<string> get_ids();
+    vector<string> get_node_ids();
 };
 
 class DummyMetadata : public Metadata {

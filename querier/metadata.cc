@@ -1,9 +1,11 @@
 #include "metadata.hh"
 #include "json/json.h"
 
-vector<string> Metadata::get_ids() {
-    return identifiers;
+vector<string> Metadata::get_node_ids() {
+    vector<string> v(identifiers.begin(), identifiers.begin() + num_nodes);
+    return v;
 }
+
 const set<string> Metadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 
 /* DUMMY IMPLEMENTATION */
@@ -15,6 +17,7 @@ DummyMetadata::DummyMetadata(string& infile) {
     size_t pos;
     size_t ctr = 0;
     num_nodes = 0;
+    vector<string> relation_ids;
 
     ifstream input(infile);
     for (string line; getline(input, line);) {
@@ -40,7 +43,6 @@ DummyMetadata::DummyMetadata(string& infile) {
                 for (auto id : ids) {
                     json_typ[id]["typ"] = typ;
                     id2jsonstr[id] = fastWriter.write(json_typ[id]);
-                    identifiers.push_back(id);
                    
                     // set identifier to id mapping
                     nodeid2id[ctr] = id;
@@ -48,12 +50,16 @@ DummyMetadata::DummyMetadata(string& infile) {
                     
                     // count number of nodes
                     if (!RELATION_TYPS.count(typ)) {
+                        identifiers.push_back(id);
                         num_nodes++;
+                    } else {
+                        relation_ids.push_back(id);
                     }
                 }
             }
         }
     }
+    identifiers.insert( identifiers.end(), relation_ids.begin(), relation_ids.end() );
 };
 
 map<string, string> DummyMetadata::get_metadata(string& identifier) {
@@ -75,11 +81,13 @@ map<string, string> DummyMetadata::get_metadata(string& identifier) {
     }
     auto keys = root.getMemberNames();
     for (auto k: keys) {
-        m[k] = fastWriter.write(root[k]);
+        string val = fastWriter.write(root[k]);
+        remove_char(val, '"'); 
+        m[k] = val.substr(0, val.length()-1);
     }
     return m;
 }
-Node_Id DummyMetadata::get_node_id(string identifer) { return id2nodeid[identifer]; }
+Node_Id DummyMetadata::get_node_id(string identifier) { return id2nodeid[identifier]; }
 string DummyMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
 
 vector<string> DummyMetadata::typs = {"prefix", "activity", "relation", "entity", "agent", "message", "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom","unknown"};
@@ -112,7 +120,6 @@ void CompressedMetadata::construct_identifiers_dict() {
         nodeid2id[i] = identifiers[i]; 
         id2nodeid[identifiers[i]] = i; 
 	}
-    print_dict(nodeid2id);
 }
 
 void CompressedMetadata::construct_prov_dicts() {

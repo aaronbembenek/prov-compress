@@ -111,10 +111,10 @@ def graph_to_dot(infile, iti):
         s.extend(['\t"%s" -> "%s" [label="%s"];' % (
             str(metadata[v].data['cf:type']) + ", " 
                 + str(metadata[v].data['cf:id']) + ', ' 
-                + str(iti[v]), 
+                + str(v),#iti[v]), 
             str(metadata[edge.dest].data['cf:type']) + ", " 
                 + str(metadata[edge.dest].data['cf:id']) + ', '
-                + str(iti[edge.dest]),
+                + str(edge.dest),#iti[edge.dest]),
             metadata[edge.label].data['cf:type'])
             for edge in edges])
     s.append("}")

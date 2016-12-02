@@ -23,9 +23,15 @@ bool str_to_int(string s, int& i, int val_type_base) {
     }
 }
 
-string remove_char(string str, char ch) {
+void remove_char(string& str, char ch) {
     str.erase(remove(str.begin(), str.end(), ch), str.end());
-    return str;
+}
+
+bool non_ascii(char c) {  
+    return !isalnum(c);   
+} 
+void remove_non_ascii(string& str) { 
+    str.erase(remove_if(str.begin(),str.end(), non_ascii), str.end());  
 }
 
 vector<string> split(string& str, char delim) {

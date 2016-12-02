@@ -29,9 +29,11 @@ bool str_to_int(string s, int& i, int val_type_base);
 /* STRING HELPERS */
 vector<string> split(string& str, char delim);
 vector<string> split(string& str, string& delim);
-string remove_char(string str, char ch);
+void remove_char(string& str, char ch);
+bool non_ascii(char c);
+void remove_non_ascii(string& str);
 
-/* DICTIONARY HELPERS */
+    /* DICTIONARY HELPERS */
 string read_file(string filename, string& str);
 template <typename K, typename V>
 void print_dict(map<K, V>& dict);
@@ -48,9 +50,9 @@ void print_dict(map<K, V>& dict) {
 
 template <typename K>
 void set_dict_entries(map<K, string>& dict, string str, int val_type_base) {
-    str = remove_char(str, DICT_BEGIN);
-    str = remove_char(str, DICT_END);
-    str = remove_char(str, '\'');
+    remove_char(str, DICT_BEGIN);
+    remove_char(str, DICT_END);
+    remove_char(str, '\'');
     auto keyvals = split(str, ',');
     for (auto kv = keyvals.begin(); kv != keyvals.end(); ++kv) {
         string delim = ": ";
@@ -58,7 +60,8 @@ void set_dict_entries(map<K, string>& dict, string str, int val_type_base) {
 
         int key;
         assert(str_to_int(pair[1], key, val_type_base));
-        dict[key] = remove_char(pair[0], ' ');
+        remove_char(pair[0], ' ');
+        dict[key] = pair[0];
     }
 }
 

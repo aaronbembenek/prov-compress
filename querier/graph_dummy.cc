@@ -8,7 +8,7 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
     map<string, string> node_md;
     string typ, head, tail;
     
-    vector<string> identifiers = metadata_->get_ids();
+    vector<string> identifiers = metadata_->identifiers;
 
     for (auto id : identifiers) {
         node_md = metadata_->get_metadata(id);
@@ -46,12 +46,10 @@ DummyGraph::DummyGraph(Metadata* metadata) : metadata_(metadata) {
 }
 
 vector<Node_Id> DummyGraph::get_outgoing_edges(Node_Id node) {
-    assert(node < get_node_count());
     return graph_[node];
 }
 
 vector<Node_Id> DummyGraph::get_incoming_edges(Node_Id node) {
-    assert(node < get_node_count());
     return tgraph_[node];
 }
 

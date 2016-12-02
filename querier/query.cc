@@ -66,10 +66,11 @@ int main(int argc, char *argv[]) {
     Clp_DeleteParser(clp);
     
     string dummy_id = "dummy";
+    vector<string> str_vector;
     if (compressed) {
         CompressedQuerier q1(metafile, graphfile);
         // test on all identifiers
-        for (auto id : q1.get_ids()) {
+        for (auto id : q1.get_node_ids()) {
             auto metadata = q1.get_metadata(id);
             print_str_vector(q1.get_all_ancestors(id));
             print_str_vector(q1.get_direct_ancestors(id));
@@ -89,23 +90,32 @@ int main(int argc, char *argv[]) {
         }
     } else {
         DummyQuerier q2(auditfile);
-         for (auto id : q2.get_ids()) {
+        for (auto id : q2.get_node_ids()) {
             auto metadata = q2.get_metadata(id);
-            print_str_vector(q2.get_all_ancestors(id));
-            print_str_vector(q2.get_direct_ancestors(id));
-            print_str_vector(q2.get_all_descendants(id));
-            print_str_vector(q2.get_direct_descendants(id));
-            (q2.all_paths(id, id));
-            (q2.friends_of(id));
+            cout << "\nNEW ID " << id << endl;
+            cout << metadata["cf:id"] << endl;
+            //str_vector = q2.get_all_ancestors(id);
+            //str_vector = (q2.get_direct_ancestors(id));
+            //str_vector = (q2.get_all_descendants(id));
+            //str_vector = (q2.get_direct_descendants(id));
+            //(q2.friends_of(id));
+            string s1 = "AQAAAAAAAECT0wEAAAAAADsFMvWRTtonAQAAAAAAAAA=";
+            string s2 = "AAAIAAAAACCR0wEAAAAAADsFMvWRTtonAAAAAAAAAAA=";
+            vector<vector<string>> str_vectors = q2.all_paths(s2, s1);
+            for (auto sv : str_vectors) {
+                print_str_vector(sv);
+            }
+            //print_str_vector(str_vector);
         }
         for (unsigned i = 0; i < 100; ++i) {
+            /*
             auto metadata = q2.get_metadata(dummy_id);
-            print_str_vector(q2.get_all_ancestors(dummy_id));
-            print_str_vector(q2.get_direct_ancestors(dummy_id));
-            print_str_vector(q2.get_all_descendants(dummy_id));
-            print_str_vector(q2.get_direct_descendants(dummy_id));
+            (q2.get_all_ancestors(dummy_id));
+            (q2.get_direct_ancestors(dummy_id));
+            (q2.get_all_descendants(dummy_id));
+            (q2.get_direct_descendants(dummy_id));
             (q2.all_paths(dummy_id, dummy_id));
-            (q2.friends_of(dummy_id));
+            (q2.friends_of(dummy_id));*/
         }
     }
     return 0;

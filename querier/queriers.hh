@@ -3,7 +3,7 @@
 
 #include "helpers.hh"
 #include "metadata.hh"
-#include "graph_dummy.hh"
+#include "graph.hh"
 
 /*
     SUPPORTED QUERIES:

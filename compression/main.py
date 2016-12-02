@@ -26,6 +26,7 @@ def main():
     print("Using infile %s\nUsing outfile %s" % (infile, outfile))
     r = BfsPreprocessor(graph, metadata)
     iti = r.construct_identifier_ids()
+    print(pj.graph_to_dot(infile, iti))
     e = CompressionEncoder(graph, metadata, iti)
     e.compress_metadata(outfile)
     c = compress_graph.BasicCompressor(r)

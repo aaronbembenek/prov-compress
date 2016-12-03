@@ -123,7 +123,7 @@ class PreprocessorV2:
                     collapsed.add_edge(v, u, None)
         return (collapsed, uf)
 
-    # XXX this is going to be pretty memory intensive...
+    # XXX this is going to be pretty memory-intensive...
     def _get_visiting_order(self, graph):
         reachable_map = {} 
         for v in graph.get_vertices():
@@ -134,13 +134,13 @@ class PreprocessorV2:
             forwards = True
             acc = set() 
             while stack:
+                assert not forwards or not len(acc)
                 (v, i, local_acc) = stack[-1]
                 assert forwards or v not in reachable_map
                 if not forwards:
                     local_acc.update(acc)
                     acc = set()
                 elif v in reachable_map:
-                    assert len(acc) == 0
                     forwards = False
                     acc = reachable_map[v]
                     stack.pop()
@@ -159,7 +159,6 @@ class PreprocessorV2:
                     stack.pop()
                     reachable_map[v] = local_acc
                     acc = local_acc
-        print(reachable_map)
         return sorted(reachable_map.keys(),
                       key=lambda v: -len(reachable_map[v]))
 

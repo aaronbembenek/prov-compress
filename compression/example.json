@@ -1,0 +1,58 @@
+SPLIT BLAH : {
+    "entity": {
+        "A": {
+            "cf:type": "task"
+        },
+        "B": {
+            "cf:type": "task" 
+        }
+    },
+    "relation": {
+        "BA": {
+            "cf:type": "version",
+            "prov:sender": "A",
+            "prov:receiver": "B"
+        }
+    }
+}
+SPLIT BLAH : {
+    "entity": {
+        "C" : {
+            "cf:type": "task"
+        },
+        "E" : {
+            "cf:type": "task"
+        },
+        "F" : {
+            "cf:type": "task"
+        }
+    },
+    "relation": {
+        "CB": {
+            "cf:type": "version",
+            "prov:sender": "B",
+            "prov:receiver": "C"
+        },
+        "DC": {
+            "cf:type": "not_version",
+            "prov:sender": "C",
+            "prov:receiver": "D"
+        },
+        "FE": {
+            "cf:type": "version",
+            "prov:sender": "E",
+            "prov:receiver": "F"
+        },
+        "EB": {
+            "cf:type": "not_version",
+            "prov:sender": "B",
+            "prov:receiver": "E"
+        },
+        "FC": {
+            "cf:type": "not_version",
+            "prov:sender": "C",
+            "prov:receiver": "F"
+        }
+    }
+
+}

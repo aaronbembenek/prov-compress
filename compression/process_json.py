@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 '''
 Given a JSON file with Camflow-style provenance data, constructs a provenance
 graph and a dictionary of metadata.
@@ -5,6 +7,8 @@ Provides functions to output data in different formats for dot/gspan processing.
 '''
 import json
 import os
+import sys
+import unionfind
 
 PATH = os.getcwd()
 
@@ -132,3 +136,63 @@ def graph_to_gspan(infile):
         vs.extend(['v %s %s' % (iti[v], NODE_TYPS.index(metadata[v].typ))])
         es.extend(['e %s %s %s' % (iti[v], iti[edge.dest], 0) for edge in edges])
     return "\n".join(s + vs + es)
+
+def graph_to_dot2(infile):
+    graph, metadata = json_to_graph_data(infile)
+    def node2str(node):
+        data = metadata[node].data
+        dtype = str(data["cf:type"])
+        if dtype == "file_name":
+            return data["cf:pathname"]
+        return dtype + ", " + node
+    s = ["digraph prov {"]
+    for v, edges in graph.items():
+        s.extend(['\t"%s" -> "%s" [label="%s"];' % (
+            node2str(v), 
+            node2str(edge.dest),
+            metadata[edge.label].typ + ", " +
+            metadata[edge.label].data['cf:type'])
+            for edge in edges])
+    s.append("}")
+    return "\n".join(s)
+
+def graph_to_dot3(infile):
+    graph, metadata = json_to_graph_data(infile)
+
+    uf = unionfind.UnionFind(graph.keys()) 
+    for v, edges in graph.items():
+        for edge in edges:
+            if metadata[edge.label].data["cf:type"] == "version":
+                uf.union(edge.dest, v)
+
+    def node2str(node):
+        data = metadata[node].data
+        dtype = str(data["cf:type"])
+        if dtype == "file_name":
+            return data["cf:pathname"]
+        return dtype + ", " + uf.find(node)
+        #return uf.find(node)
+    already = set()
+    s = ["digraph prov {"]
+    for v, edges in graph.items():
+        for edge in edges:
+            if metadata[edge.label].data["cf:type"] == "version":
+                continue
+            pair = (uf.find(v), uf.find(edge.dest))
+            if pair in already:
+                continue
+            already.add(pair)
+            s.append('\t"%s" -> "%s";' % (
+                node2str(v), 
+                node2str(edge.dest)))#,
+                #metadata[edge.label].typ + ", " +
+                #metadata[edge.label].data['cf:type']))
+    s.append("}")
+    return "\n".join(s)
+
+
+def main():
+    print(graph_to_dot3(sys.argv[1]))
+
+if __name__ == "__main__":
+    main()

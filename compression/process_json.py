@@ -55,8 +55,9 @@ def json_to_graph_data(infile):
                         assert(typ == metadata[identifier].typ)
                         for d in data.keys():
                             if (metadata[identifier].data[d] != data[d]):
-                                print("Different Metadata!")
-                                print(identifier, d, metadata[identifier].data[d], data[d])
+                                pass # XXX 
+                                #print("Different Metadata!")
+                                #print(identifier, d, metadata[identifier].data[d], data[d])
 
                     metadata[identifier] = Metadata(typ, data)
                     missing_nodes.discard(identifier)
@@ -109,12 +110,13 @@ def graph_to_dot(infile, iti):
     s = ["digraph prov {"]
     for v, edges in graph.items():
         s.extend(['\t"%s" -> "%s" [label="%s"];' % (
+            str(metadata[v].typ) +", " +  
             str(metadata[v].data['cf:type']) + ", " 
                 + str(metadata[v].data['cf:id']) + ', ' 
-                + str(v),#iti[v]), 
-            str(metadata[edge.dest].data['cf:type']) + ", " 
+                + str(iti[v]), 
+            str(metadata[edge.dest].typ) + ", " + str(metadata[edge.dest].data['cf:type']) + ", " 
                 + str(metadata[edge.dest].data['cf:id']) + ', '
-                + str(edge.dest),#iti[edge.dest]),
+                + str(iti[edge.dest]),
             metadata[edge.label].data['cf:type'])
             for edge in edges])
     s.append("}")

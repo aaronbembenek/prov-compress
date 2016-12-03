@@ -1,10 +1,11 @@
 #include "graph_v1.hh"
-#include "graph_dummy.hh"
+#include "json_graph.hh"
 #include "queriers.hh"
 
 DummyQuerier::DummyQuerier(string& auditfile) {
-    metadata_ = new DummyMetadata(auditfile);
-    graph_ = new DummyGraph(metadata_);
+    auto json_graph = new JsonGraph(auditfile);
+    metadata_ = json_graph; 
+    graph_ = json_graph;
 }
 
 CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
@@ -72,8 +73,9 @@ vector<vector<string>> Querier::all_paths(string& sourceid, string& sinkid) {
     }
     return result;
 }
-void Querier::friends_of(string& identifier) {
+vector<string> Querier::friends_of(string& identifier) {
     (void)identifier;
+    return {};
 }
 vector<string> Querier::get_node_ids() {
     return metadata_->get_node_ids();

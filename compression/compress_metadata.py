@@ -87,6 +87,7 @@ class Encoder():
         self.iti = iti
         self.num_nodes = len(graph)
         self.id_bits = util.nbits_for_int(self.num_nodes)
+        self.encoded_json_bits = ''
 
         self.default_node_data = {}
         self.default_relation_data = {}
@@ -101,13 +102,17 @@ class Encoder():
         self.labels_dict = {elt:util.int2bitstr(i, Encoder.label_bits) 
                 for (i, elt) in enumerate(Encoder.prov_label_strings)}
 
+    def write_to_file(self, outfile):
+        with open(outfile, 'wb') as f:
+            bitstring.BitArray(bin=self.encoded_json_bits).tofile(f)
+
         with open(PATH+"/prov_data_dicts.txt", 'w') as f:
             f.write(str(self.keys_dict))
             f.write(str(self.vals_dict))
             f.write(str(self.labels_dict))
             f.write(str(self.typs_dict))
             f.write(str(self.node_types_dict))
-
+    
 class CompressionEncoder(Encoder):
     def prepare_metadata_json(self):
         ''' 
@@ -285,7 +290,7 @@ class CompressionEncoder(Encoder):
         s = util.int2bitstr(len(entry_data) + len(default_data) + 32, 32) + default_data + entry_data
         return s
 
-    def compress_metadata(self, outfile):
+    def compress_metadata(self):
         self.prepare_metadata_json()
-        with open(outfile, 'wb') as f:
-            bitstring.BitArray(bin=self.encode_json()).tofile(f)
+        self.encoded_json_bits = self.encode_json()
+

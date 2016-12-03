@@ -1,101 +1,7 @@
 #include "metadata.hh"
-#include "json/json.h"
-
-vector<string> Metadata::get_node_ids() {
-    vector<string> v(identifiers.begin(), identifiers.begin() + num_nodes);
-    return v;
-}
 
 const set<string> Metadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", "wasDerivedFrom", "used", "relation"};
 
-/* DUMMY IMPLEMENTATION */
-DummyMetadata::DummyMetadata(string& infile) {
-    Json::Reader reader;
-    Json::FastWriter fastWriter;
-    Json::Value root;
-    Json::Value json_typ;
-    size_t pos;
-    size_t ctr = 0;
-    num_nodes = 0;
-    vector<string> relation_ids;
-
-    ifstream input(infile);
-    for (string line; getline(input, line);) {
-        string json;
-        if ((pos = line.find(DICT_BEGIN)) == string::npos) {
-            continue;
-        }
-        json = line.substr(pos);
-        bool parsingSuccessful = reader.parse( json, root );
-        if ( !parsingSuccessful ) {
-            // report to the user the failure and their locations in the document.
-            std::cout  << "Failed to parse configuration\n"
-                       << reader.getFormattedErrorMessages();
-            return;
-        }
-        for (auto typ : typs) {
-            if (typ == "prefix") {
-                continue;
-            }
-            json_typ = root.get(typ, "None");
-            if (json_typ != "None") {
-                auto ids = json_typ.getMemberNames();
-                for (auto id : ids) {
-                    json_typ[id]["typ"] = typ;
-                    id2jsonstr[id] = fastWriter.write(json_typ[id]);
-                   
-                    // set identifier to id mapping
-                    nodeid2id[ctr] = id;
-                    id2nodeid[id] = ctr++;
-                    
-                    // count number of nodes
-                    if (!RELATION_TYPS.count(typ)) {
-                        identifiers.push_back(id);
-                        num_nodes++;
-                    } else {
-                        relation_ids.push_back(id);
-                    }
-                }
-            }
-        }
-    }
-    identifiers.insert( identifiers.end(), relation_ids.begin(), relation_ids.end() );
-};
-
-map<string, string> DummyMetadata::get_metadata(string& identifier) {
-    map<string, string> m;
-    Json::Reader reader;
-    Json::FastWriter fastWriter;
-    Json::Value root;
-
-    if(id2jsonstr.count(identifier) == 0) {
-        return m;
-    }
-
-    bool parsingSuccessful = reader.parse( id2jsonstr[identifier], root );
-    if ( !parsingSuccessful ) {
-        // report to the user the failure and their locations in the document.
-        std::cout  << "Failed to parse configuration\n"
-                   << reader.getFormattedErrorMessages();
-        return m;
-    }
-    auto keys = root.getMemberNames();
-    for (auto k: keys) {
-        string val = fastWriter.write(root[k]);
-        remove_char(val, '"'); 
-        m[k] = val.substr(0, val.length()-1);
-    }
-    return m;
-}
-Node_Id DummyMetadata::get_node_id(string identifier) { return id2nodeid[identifier]; }
-string DummyMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
-
-vector<string> DummyMetadata::typs = {"prefix", "activity", "relation", "entity", "agent", "message", "used", "wasGeneratedBy", "wasInformedBy", "wasDerivedFrom","unknown"};
-
-
-/*************************************
- * COMPRESSED IMPLEMENTATION 
- *************************************/
 CompressedMetadata::CompressedMetadata(string& infile) {
     construct_identifiers_dict();
     construct_prov_dicts();
@@ -409,6 +315,10 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
 }
 Node_Id CompressedMetadata::get_node_id(string identifer) { return id2nodeid[identifer]; }
 string CompressedMetadata::get_identifier(Node_Id node) { return nodeid2id[node]; }
+vector<string> CompressedMetadata::get_node_ids() {
+    vector<string> v(identifiers.begin(), identifiers.begin()+num_nodes);
+    return v;
+}
 
 const string CompressedMetadata::PROV_DICTS_FILE = "../compression/prov_data_dicts.txt";
 const string CompressedMetadata::IDENTIFIERS_FILE = "../compression/identifiers.txt";

@@ -13,25 +13,8 @@ public:
     virtual map<string, string> get_metadata(string& identifier) = 0;
     virtual Node_Id get_node_id(string) = 0;
     virtual string get_identifier(Node_Id) = 0;
-    
-    vector<string> get_node_ids();
+    virtual vector<string> get_node_ids() = 0;
 };
-
-class DummyMetadata : public Metadata {
-    static vector<string> typs;
-public:
-private:
-    map<string, string> id2jsonstr;
-    map<string, Node_Id>id2nodeid;
-    map<Node_Id, string>nodeid2id;
-
-public:
-    DummyMetadata(string& infile);
-    map<string, string> get_metadata(string& identifier) override;
-    Node_Id get_node_id(string) override;
-    string get_identifier(Node_Id) override;
-};
-
 
 class CompressedMetadata : public Metadata {
 private:
@@ -79,6 +62,7 @@ private: // helper functions
     void construct_prov_dicts();
     size_t find_next_entry(size_t cur_pos);
     void construct_metadata_dict(string& infile);
+    vector<string> get_node_ids() override;
 };
 
 /*

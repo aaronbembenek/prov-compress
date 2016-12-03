@@ -1,9 +1,13 @@
 CC = gcc
 CCFLAGS =
 CXX = g++
-CXXFLAGS = -std=gnu++0x -g 
+ifeq ($(COMPRESSED), 1)
+CXXFLAGS = -std=gnu++0x -g -DCOMPRESSED
+else
+CXXFLAGS = -std=gnu++0x -g
+endif
 OPTFLAGS = -W -Wall -O3
-OBJS = helpers.o queriers.o metadata.o clp.o jsoncpp.o graph.o graph_v1.o graph_dummy.o
+OBJS = helpers.o metadata_compressed.o clp.o jsoncpp.o graph.o graph_v1.o json_graph.o queriers.o 
 DEPS = $(OBJS)
 
 %.o: %.c
@@ -15,8 +19,8 @@ DEPS = $(OBJS)
 query: query.o $(DEPS)
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $< $(OBJS)
 
-graph: graph_test.o graph.o graph_v1.o helpers.o graph_dummy.o metadata.o jsoncpp.o
+graph: graph_test.o graph.o graph_v1.o helpers.o json_graph.o metadata_compressed.o jsoncpp.o
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^ 
 
 clean:
-	rm -f *.o graph query
+	rm -f *.o graph query dummy_query

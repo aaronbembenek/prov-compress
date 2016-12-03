@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import math
+import sys
 import process_json as pj
 
 def transpose_graph(g):
@@ -85,6 +86,11 @@ class WriterBitString:
 
     def __len__(self):
         return self.len
+
+def warn(*args, **kargs):
+    sep = kargs.get("sep", " ") 
+    msg = sep.join(str(x) for x in args)
+    print("\033[93m" + msg + "\033[0m", **kargs)
 
 def main():
     bs = WriterBitString()

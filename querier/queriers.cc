@@ -80,5 +80,3 @@ vector<string> Querier::friends_of(string& identifier) {
 vector<string> Querier::get_node_ids() {
     return metadata_->get_node_ids();
 }
-
-

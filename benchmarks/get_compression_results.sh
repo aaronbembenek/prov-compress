@@ -6,8 +6,8 @@ rm $outfile
 touch $outfile
 
 for f in results/*.prov; do
-    (echo $f) >> $outfile 2>&1
-    cd ../compression && ./main.py ../benchmarks/$f  >> ../benchmarks/$outfile 2>&1 
+    (echo File $f) >> $outfile
+    cd ../compression && ./main.py ../benchmarks/$f  >> ../benchmarks/$outfile 
     xz -9 -k $idfile
     mdsize=$(ls -lrt $metafile | awk '{ total += $5 }; END { print total }')
     idsize=$(ls -lrt $idfile.xz | awk '{ total += $5 }; END { print total }')
@@ -19,5 +19,5 @@ for f in results/*.prov; do
     xzsize=$(ls -lrt $f.xz | awk '{ total += $5 }; END { print total }')
     xz -d $f.xz
     original=$(ls -lrt $f | awk '{ total += $5 }; END { print total }')
-    (echo $mdsize $idsize $graphsize $csize $xzsize $original $(bc <<<"scale=2;$original/$csize") $(bc <<<"scale=2;$original/$xzsize")) >> $outfile 2>&1
+    (echo $mdsize $idsize $graphsize $csize $xzsize $original $(bc <<<"scale=2;$original/$csize") $(bc <<<"scale=2;$original/$xzsize")) >> $outfile 
 done

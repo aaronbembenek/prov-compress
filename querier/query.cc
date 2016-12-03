@@ -35,7 +35,7 @@ Options:\n\
 }
 
 int main(int argc, char *argv[]) {
-    int query;
+    int query = 0;
 
     Clp_Parser *clp = Clp_NewParser(argc, argv, arraysize(options), options);
 
@@ -64,24 +64,25 @@ int main(int argc, char *argv[]) {
     Clp_DeleteParser(clp);
    
 #if COMPRESSED
-    printf("\
+    fprintf(stderr,"\
         Using Compressed Metadata %s\n\
         Using Compressed Graph %s\n\
-        Benchmarking %d reps of query %d\n",
-        metafile.c_str(), graphfile.c_str(), NUM_REPS, query);
-
+        %d reps\n",
+        metafile.c_str(), graphfile.c_str(), NUM_REPS);
+    cout << "Query " << query << endl;
     CompressedQuerier q(metafile, graphfile);
 #else
-    printf("\
+    fprintf(stderr,"\
         Using Auditfile %s\n\
-        Benchmarking %d reps of query %d\n",
-        auditfile.c_str(), NUM_REPS, query);
+        %d reps\n",
+        auditfile.c_str(), NUM_REPS);
+    cout << "Query " << query << endl;
     DummyQuerier q(auditfile);
 #endif
     
     vector<string> ids;
     vector<std::chrono::nanoseconds::rep> times;
-    vector<int> vm_usages;
+    int vm_usage = 0;
     for (auto id : q.get_node_ids()) {
         ids.push_back(id);
         // run all-paths
@@ -94,32 +95,32 @@ int main(int argc, char *argv[]) {
             }
             auto duration = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
             times.push_back(duration.count());
-            vm_usages.push_back(virtualmem_usage());
+            vm_usage = virtualmem_usage();
         } else {
             switch(query) {
             case (0):
                 times.push_back(measure<>::execution(q, &Querier::get_metadata, id));
-                vm_usages.push_back(virtualmem_usage());
+                vm_usage = virtualmem_usage();
                 break;
             case(1): 
                 times.push_back(measure<>::execution(q, &Querier::get_all_ancestors, id));
-                vm_usages.push_back(virtualmem_usage());
+                vm_usage = virtualmem_usage();
                 break;
             case(2): 
                 times.push_back(measure<>::execution(q, &Querier::get_direct_ancestors, id));
-                vm_usages.push_back(virtualmem_usage());
+                vm_usage = virtualmem_usage();
                 break;
             case(3): 
                 times.push_back(measure<>::execution(q, &Querier::get_all_descendants, id));
-                vm_usages.push_back(virtualmem_usage());
+                vm_usage = virtualmem_usage();
                 break;
             case(4): 
                 times.push_back(measure<>::execution(q, &Querier::get_direct_descendants, id));
-                vm_usages.push_back(virtualmem_usage());
+                vm_usage = virtualmem_usage();
                 break;
             case(5): 
                 times.push_back(measure<>::execution(q, &Querier::friends_of, id));
-                vm_usages.push_back(virtualmem_usage());
+                vm_usage = virtualmem_usage();
                 break;
             default: assert(0);
             }
@@ -135,11 +136,7 @@ int main(int argc, char *argv[]) {
     for (auto t : times) {
         cout << t <<  ", ";
     }
-    cout << endl;
-    for (auto vm : vm_usages) {
-        cout << vm <<  ", ";
-    }
-    cout << endl;
+    cout << endl<< "VM:" << vm_usage << endl;
 
     return 0;
 }

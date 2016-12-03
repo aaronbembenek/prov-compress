@@ -95,32 +95,32 @@ int main(int argc, char *argv[]) {
             }
             auto duration = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
             times.push_back(duration.count());
-            vm_usage = virtualmem_usage();
+            vm_usage = max(vm_usage, virtualmem_usage());
         } else {
             switch(query) {
             case (0):
                 times.push_back(measure<>::execution(q, &Querier::get_metadata, id));
-                vm_usage = virtualmem_usage();
+                vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(1): 
                 times.push_back(measure<>::execution(q, &Querier::get_all_ancestors, id));
-                vm_usage = virtualmem_usage();
+                vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(2): 
                 times.push_back(measure<>::execution(q, &Querier::get_direct_ancestors, id));
-                vm_usage = virtualmem_usage();
+                vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(3): 
                 times.push_back(measure<>::execution(q, &Querier::get_all_descendants, id));
-                vm_usage = virtualmem_usage();
+                vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(4): 
                 times.push_back(measure<>::execution(q, &Querier::get_direct_descendants, id));
-                vm_usage = virtualmem_usage();
+                vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(5): 
                 times.push_back(measure<>::execution(q, &Querier::friends_of, id));
-                vm_usage = virtualmem_usage();
+                vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             default: assert(0);
             }
@@ -132,7 +132,6 @@ int main(int argc, char *argv[]) {
         cout << id << ",";
     }
     */
-    cout << endl;
     for (auto t : times) {
         cout << t <<  ", ";
     }

@@ -39,19 +39,14 @@ template<typename TimeT = std::chrono::nanoseconds>
 struct measure
 {
     template<typename T, typename F, typename ...Args>
-    static exec_stats<TimeT> execution(T& obj, F&& func, Args&&... args)
+    static typename TimeT::rep execution(T& obj, F&& func, Args&&... args)
     {
-        exec_stats<TimeT> st; 
-        auto startvm = virtualmem_usage();
         auto start = std::chrono::steady_clock::now();
         for (auto i = 0; i < NUM_REPS; ++i) {
             (obj.*func)(std::forward<Args>(args)...);
         }
         auto duration = std::chrono::duration_cast< TimeT> (std::chrono::steady_clock::now() - start);
-        auto endvm = virtualmem_usage();
-        st.vm_usage = endvm-startvm; 
-        st.time = duration.count();
-        return st;
+        return duration.count();
     }
 };
 

@@ -80,17 +80,17 @@ int main(int argc, char *argv[]) {
     DummyQuerier q(auditfile);
 #endif
     
-    vector<string> ids;
     vector<std::chrono::nanoseconds::rep> times;
     int vm_usage = 0;
-    for (auto id : q.get_node_ids()) {
-        ids.push_back(id);
+    auto ids = q.get_node_ids();
+    for (unsigned i = 0; i < ids.size(); i+= 100) {
+        
         // run all-paths
         if (query == 6) {
             auto start = std::chrono::steady_clock::now();
             for (auto i = 0; i < NUM_REPS; ++i) {
-                for (auto id2 : q.get_node_ids()) {
-                    (q.all_paths(id, id));
+                for (unsigned j = 1; j < ids.size(); j+=100) {
+                    (q.all_paths(ids[i], ids[j]));
                 }
             }
             auto duration = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
@@ -99,27 +99,27 @@ int main(int argc, char *argv[]) {
         } else {
             switch(query) {
             case (0):
-                times.push_back(measure<>::execution(q, &Querier::get_metadata, id));
+                times.push_back(measure<>::execution(q, &Querier::get_metadata, ids[i]));
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(1): 
-                times.push_back(measure<>::execution(q, &Querier::get_all_ancestors, id));
+                times.push_back(measure<>::execution(q, &Querier::get_all_ancestors, ids[i]));
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(2): 
-                times.push_back(measure<>::execution(q, &Querier::get_direct_ancestors, id));
+                times.push_back(measure<>::execution(q, &Querier::get_direct_ancestors, ids[i]));
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(3): 
-                times.push_back(measure<>::execution(q, &Querier::get_all_descendants, id));
+                times.push_back(measure<>::execution(q, &Querier::get_all_descendants, ids[i]));
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(4): 
-                times.push_back(measure<>::execution(q, &Querier::get_direct_descendants, id));
+                times.push_back(measure<>::execution(q, &Querier::get_direct_descendants, ids[i]));
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(5): 
-                times.push_back(measure<>::execution(q, &Querier::friends_of, id));
+                times.push_back(measure<>::execution(q, &Querier::friends_of, ids[i]));
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             default: assert(0);
@@ -127,11 +127,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    /*
-    for (auto id : ids) {
-        cout << id << ",";
-    }
-    */
     for (auto t : times) {
         cout << t <<  ", ";
     }

@@ -5,6 +5,7 @@ const set<string> Metadata::RELATION_TYPS = {"wasGeneratedBy", "wasInformedBy", 
 CompressedMetadata::CompressedMetadata(string& infile) {
     construct_identifiers_dict();
     construct_prov_dicts();
+    construct_commonstr_dict();
     construct_metadata_dict(infile);
 }
 
@@ -28,17 +29,41 @@ void CompressedMetadata::construct_identifiers_dict() {
 	}
 }
 
+void CompressedMetadata::construct_commonstr_dict() {
+    string bin_buffer;
+    string str_buffer;
+    vector<string> strs;
+    int encoding;
+    size_t pos = 0;
+
+    read_file(COMMONSTR_FILE+".bin", bin_buffer);
+    read_file(COMMONSTR_FILE+".txt", str_buffer);
+
+    strs = split(str_buffer, ',');
+    
+    BitSet bs(bin_buffer);
+    for (unsigned i = 0; i < strs.size(); ++i) { 
+        bs.get_bits(encoding, COMMONSTR_BITS, pos);
+        commonstr_dict[encoding] = strs[i];
+        pos += COMMONSTR_BITS;
+    }
+}
+
 void CompressedMetadata::construct_prov_dicts() {
     string buffer;
     vector<string> data;
 
     read_file(PROV_DICTS_FILE, buffer);
     data = split(buffer, DICT_END);
-    assert(data.size() == 5);
+    assert(data.size() == 4);
 
-    vector<map<unsigned char, string>*> dicts = {&key_dict, &val_dict, &prov_label_dict, &typ_dict, &node_types_dict};
-    vector<size_t*> bits = {&key_bits, &val_bits, &label_bits, &typ_bits, &node_type_bits};
-    val_bits = max(val_bits, node_type_bits);
+    vector<map<unsigned char, string>*> dicts = {
+        &key_dict, 
+        &val_dict, 
+        &prov_label_dict, 
+        &typ_dict, 
+    };
+    vector<size_t*> bits = {&key_bits, &val_bits, &label_bits, &typ_bits};
     for (size_t i = 0; i < data.size(); ++i) {
         set_dict_entries(*dicts[i], data[i], 2);
         *bits[i] = nbits_for_int(dicts[i]->size());
@@ -47,8 +72,14 @@ void CompressedMetadata::construct_prov_dicts() {
 }
 
 size_t CompressedMetadata::find_next_entry(size_t cur_pos) {
-    size_t num_equal_keys, num_encoded_keys, num_other_keys, num_diff_dates;
-    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys, &num_diff_dates};
+    size_t num_equal_keys, num_encoded_keys, num_common_keys, num_other_keys, num_diff_dates;
+    vector<size_t*> num_key_types = {
+        &num_equal_keys, 
+        &num_encoded_keys, 
+        &num_common_keys, 
+        &num_other_keys, 
+        &num_diff_dates
+    };
 
     size_t date_index, val_size;
     cur_pos += typ_bits;
@@ -58,6 +89,7 @@ size_t CompressedMetadata::find_next_entry(size_t cur_pos) {
     }
     cur_pos += key_bits*num_equal_keys;
     cur_pos += (key_bits+val_bits)*num_encoded_keys;
+    cur_pos += (key_bits+COMMONSTR_BITS)*num_common_keys;
 
     for (size_t i = 0; i < num_other_keys; ++i) {
         unsigned char key;
@@ -85,11 +117,18 @@ void CompressedMetadata::construct_metadata_dict(string& infile) {
     metadata_bs = new BitSet(buffer); 
     size_t total_size, cur_pos, val_size;
     unsigned char key, encoded_val;
+    int common_val;
     string str_val;
     int int_val;
 
-    size_t num_equal_keys, num_encoded_keys, num_other_keys, num_diff_dates;
-    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys, &num_diff_dates};
+    size_t num_equal_keys, num_encoded_keys, num_common_keys, num_other_keys, num_diff_dates;
+    vector<size_t*> num_key_types = {
+        &num_equal_keys, 
+        &num_encoded_keys, 
+        &num_common_keys, 
+        &num_other_keys, 
+        &num_diff_dates
+    };
 
     // get the total size of the data
     cur_pos = 0;
@@ -114,20 +153,27 @@ void CompressedMetadata::construct_metadata_dict(string& infile) {
         assert(num_equal_keys == 0);
         // there should also be no date...
         assert(num_diff_dates == 0);
+        
         // deal with encoded values
         for (size_t i = 0; i < num_encoded_keys; ++i) {
             metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
             cur_pos += key_bits;
             
-            // we encode cf:type as an integer if it is a node
             metadata_bs->get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
-            if (key_dict[key] == "cf:type" && (default_data != &default_relation_data)) {
-                (*default_data)[key_dict[key]] = node_types_dict[encoded_val];
-            } else {
-                (*default_data)[key_dict[key]] = val_dict[encoded_val];
-            }
+            (*default_data)[key_dict[key]] = val_dict[encoded_val];
             cur_pos += val_bits;
         }
+        
+        // deal with common values
+        for (size_t i = 0; i < num_common_keys; ++i) {
+            metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
+            cur_pos += key_bits;
+            
+            metadata_bs->get_bits<int>(common_val, COMMONSTR_BITS, cur_pos);
+            (*default_data)[key_dict[key]] = commonstr_dict[common_val];
+            cur_pos += COMMONSTR_BITS;
+        }
+
         // nonencoded values
         char label_key;
         for (size_t i = 0; i < num_other_keys; ++i) {
@@ -175,11 +221,18 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     map<string, string> metadata;
     size_t cur_pos, val_size, date_index;
     unsigned char key, encoded_val, typ;
+    int common_val;
     int int_val, nodeid;
     string str_val;
 
-    size_t num_equal_keys, num_encoded_keys, num_other_keys, num_diff_dates;
-    vector<size_t*> num_key_types = {&num_equal_keys, &num_encoded_keys, &num_other_keys, &num_diff_dates};
+    size_t num_equal_keys, num_encoded_keys, num_common_keys, num_other_keys, num_diff_dates;
+    vector<size_t*> num_key_types = {
+        &num_equal_keys, 
+        &num_encoded_keys, 
+        &num_common_keys, 
+        &num_other_keys, 
+        &num_diff_dates
+    };
 
     auto my_nodeid = id2nodeid.find(identifier);
     if (my_nodeid == id2nodeid.end()) {
@@ -232,23 +285,27 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
         if (is_relation) {
             metadata[key_dict[key]] = default_relation_data[key_dict[key]];
         } else {
-            // we can't encode because we don't know if this node is relative or not
+            // we can't decode because we don't know if this node is relative or not
             metadata[key_dict[key]] = "=";
         }
     }
 
-    // unencode encoded values
+    // decode encoded values
     for (size_t i = 0; i < num_encoded_keys; ++i) {
         metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
         cur_pos += key_bits;
         metadata_bs->get_bits<unsigned char>(encoded_val, val_bits, cur_pos);
         cur_pos += val_bits;
-        if (key_dict[key] == "cf:type" && !is_relation) {
-            metadata[key_dict[key]] = node_types_dict[encoded_val];
-        }
-        else {
-            metadata[key_dict[key]] = val_dict[encoded_val];
-        }
+        metadata[key_dict[key]] = val_dict[encoded_val];
+    }
+    
+    // decode common values
+    for (size_t i = 0; i < num_common_keys; ++i) {
+        metadata_bs->get_bits<unsigned char>(key, key_bits, cur_pos);
+        cur_pos += key_bits;
+        metadata_bs->get_bits<int>(common_val, COMMONSTR_BITS, cur_pos);
+        cur_pos += COMMONSTR_BITS;
+        metadata[key_dict[key]] = commonstr_dict[common_val];
     }
 
     // nonencoded values
@@ -322,6 +379,8 @@ vector<string> CompressedMetadata::get_node_ids() {
 
 const string CompressedMetadata::PROV_DICTS_FILE = "../compression/prov_data_dicts.txt";
 const string CompressedMetadata::IDENTIFIERS_FILE = "../compression/identifiers.txt";
+const string CompressedMetadata::COMMONSTR_FILE = "../compression/common_strs";
 const string CompressedMetadata::RELATIVE_NODE = "@";
 const vector<size_t> CompressedMetadata::DATE_BITS = {12,4,5,5,6,6};
 const size_t CompressedMetadata::DATE_TYPE_BITS = nbits_for_int(CompressedMetadata::DATE_BITS.size());
+const size_t CompressedMetadata::COMMONSTR_BITS = nbits_for_int(CompressedMetadata::MAX_COMMON_STRS);

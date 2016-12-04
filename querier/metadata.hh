@@ -19,28 +19,28 @@ public:
 class CompressedMetadata : public Metadata {
 private:
     // hardcoded constants/dictionaries
+    static const string COMMONSTR_FILE;
     static const string PROV_DICTS_FILE;
     static const string IDENTIFIERS_FILE;
     static const string RELATIVE_NODE;
     static const int MAX_STRING_SIZE_BITS = 10;
+    static const int MAX_COMMON_STRS = 300;
 
     static const vector<size_t> DATE_BITS;
     static const size_t DATE_TYPE_BITS;
+    static const size_t COMMONSTR_BITS;
 
     // prov strings dictionaries (constructed from file)
-    map<unsigned char, string>node_types_dict;
     map<unsigned char, string>typ_dict;
     map<unsigned char, string>key_dict;
     map<unsigned char, string>prov_label_dict;
     map<unsigned char, string>val_dict;
-    BitSet* metadata_bs;
+    map<int, string>commonstr_dict;
 
     map<string, string>default_node_data;
     map<string, string>default_relation_data;
     vector<size_t>default_date;
-    map<Node_Id, size_t>nodeid2dataindex;
 
-    size_t node_type_bits;
     size_t typ_bits;
     size_t key_bits;
     size_t label_bits;
@@ -50,6 +50,9 @@ private:
 
     map<string, Node_Id>id2nodeid;
     map<Node_Id, string>nodeid2id;
+    
+    map<Node_Id, size_t>nodeid2dataindex;
+    BitSet* metadata_bs;
 
 public:
     CompressedMetadata(string& infile);
@@ -60,6 +63,7 @@ public:
 private: // helper functions
     void construct_identifiers_dict();
     void construct_prov_dicts();
+    void construct_commonstr_dict();
     size_t find_next_entry(size_t cur_pos);
     void construct_metadata_dict(string& infile);
     vector<string> get_node_ids() override;

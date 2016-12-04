@@ -10,7 +10,7 @@ import os
 import sys
 import unionfind
 
-PATH = os.getcwd()
+PATH = "../compression"
 
 DICT_BEGIN = '{'
 DICT_END = '}'
@@ -53,12 +53,13 @@ def json_to_graph_data(infile):
                     # confirm that each entry in the JSON has a unique ID and metadata.
                     if identifier in metadata:
                         assert(typ == metadata[identifier].typ)
+                        '''
                         for d in data.keys():
                             if (metadata[identifier].data[d] != data[d]):
                                 pass # XXX 
                                 #print("Different Metadata!")
                                 #print(identifier, d, metadata[identifier].data[d], data[d])
-
+                        '''
                     metadata[identifier] = Metadata(typ, data)
                     missing_nodes.discard(identifier)
 

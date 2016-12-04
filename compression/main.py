@@ -18,7 +18,7 @@ def main():
     elif len(sys.argv) == 3:
         infile = sys.argv[1]
         outfile = sys.argv[2]
-        graph_out = outfile 
+        graph_out = pj.PATH+"/graph"
     else:
         print("Usage: ./process_json.py [infile] [outfile]")
         sys.exit(1)

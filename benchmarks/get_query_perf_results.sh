@@ -1,10 +1,9 @@
 cfile=compression_perf.data
 dfile=dummy_perf.data
-#declare -a queries=( 0 1 2 3 4 5 6 )
-declare -a queries=( 0 1 2 3 4 5 )
+declare -a queries=( 0 1 2 3 4 5 6 )
 
-#rm results/$cfile
-#rm results/$dfile
+rm results/$cfile
+rm results/$dfile
 touch results/$cfile
 touch results/$dfile
 
@@ -19,7 +18,7 @@ for f in results/*.prov; do
     cd ../querier 
     (echo File $f) >> ../benchmarks/results/$dfile
     for q in ${queries[@]}; do
-        ./query --query=$q --auditfile=$f >> ../benchmarks/results/$dfile
+        ./query --query=$q --auditfile=../benchmarks/$f >> ../benchmarks/results/$dfile
     done
     cd ../benchmarks
 done

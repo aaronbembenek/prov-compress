@@ -6,28 +6,14 @@ from process_json import (
     DICT_BEGIN,
     DICT_END,
     RELATION_TYPS,
-    PATH
+    PATH,
 )
 import util
-from collections import defaultdict
-
-'''
-TODO
-    - Label stuff
-    - Use byte encoding instead of bitstring
-    - Compress numbers (flag with one bit)
-'''
+from collections import defaultdict, Counter
 
 class Encoder():
     MAX_STRING_SIZE_BITS = 10 
     RELATIVE_NODE = '@'
-    node_types = {
-        0x00000001, 0x00000002, 0x00000004, 0x00000008, 0x00000010, 
-        0x00000020, 0x00000040, 0x00000080, 0x00000100, 0x00000200, 
-        0x00000400, 0x00000800, 0x00001000, 0x00002000, 0x00004000, 
-        0x00008000, 0x00010000, 0x00020000, 0x00040000, 0x00080000, 
-        0x00100000, 0x00200000,
-    }    
     typ_strings = {
         'prefix', 'activity', 'relation', 'entity', 'agent', 'message', 
         'used', 'wasGeneratedBy', 'wasInformedBy', 'wasDerivedFrom',
@@ -69,7 +55,7 @@ class Encoder():
     key_bits = util.nbits_for_int(len(key_strings))
     label_bits = 8 
     typ_bits = util.nbits_for_int(len(typ_strings))
-    val_bits = max(util.nbits_for_int(len(val_strings)), util.nbits_for_int(len(node_types)))
+    val_bits = util.nbits_for_int(len(val_strings))
     date_bits = {
         "year": 12,
         "month": 4,
@@ -80,6 +66,11 @@ class Encoder():
     }
     date_types = ["year","month","day","hour","minute","sec"]
     date_type_bits = util.nbits_for_int(len(date_types))
+    
+    # number of common strings we will map to dictionary
+    strdict_threshold = 300 
+    strdict_bits = util.nbits_for_int(strdict_threshold)
+    print(strdict_bits)
 
     def __init__(self, graph, metadata, iti):
         self.graph = graph
@@ -96,11 +87,44 @@ class Encoder():
         self.keys_dict = {elt:util.int2bitstr(i, Encoder.key_bits) for (i, elt) in enumerate(Encoder.key_strings)}
         self.vals_dict = {elt:util.int2bitstr(i, Encoder.val_bits) for (i, elt) in enumerate(Encoder.val_strings)}
         self.typs_dict = {elt:util.int2bitstr(i, Encoder.typ_bits) for (i, elt) in enumerate(Encoder.typ_strings)}
-        self.node_types_dict = {elt:util.int2bitstr(i, Encoder.val_bits) 
-                for (i, elt) in enumerate(Encoder.node_types)}
-
         self.labels_dict = {elt:util.int2bitstr(i, Encoder.label_bits) 
                 for (i, elt) in enumerate(Encoder.prov_label_strings)}
+
+        self.common_strs_dict = self.construct_common_strs_dict()
+
+    def construct_common_strs_dict(self):
+        strval_counter = Counter()
+        for identifier, metadata in self.metadata.items():
+            typ = metadata.typ
+            data = metadata.data
+          
+            values = [str(v) for v in data.values()]
+            c = Counter(values)
+            strval_counter.update(c)
+            if 'cf:date' in data:
+                del strval_counter[data['cf:date']]
+
+            if typ in RELATION_TYPS:
+                if typ == 'used':
+                    head = data["prov:entity"]
+                    tail = data["prov:activity"]
+                elif typ == 'wasGeneratedBy':
+                    head = data["prov:activity"]
+                    tail = data["prov:entity"]
+                elif typ == 'wasDerivedFrom':
+                    head = data["prov:usedEntity"]
+                    tail = data["prov:generatedEntity"]
+                elif typ == 'wasInformedBy':
+                    head = data["prov:informant"]
+                    tail = data["prov:informed"]
+                elif typ == 'relation':
+                    head = data["prov:sender"]
+                    tail = data["prov:receiver"]
+                del strval_counter[head]                
+                del strval_counter[tail]                
+
+        return {val:util.int2bitstr(i, Encoder.strdict_bits) 
+                for i, (val, _) in enumerate(strval_counter.most_common(Encoder.strdict_threshold))}
 
     def write_to_file(self, outfile):
         with open(outfile, 'wb') as f:
@@ -111,9 +135,19 @@ class Encoder():
             f.write(str(self.vals_dict))
             f.write(str(self.labels_dict))
             f.write(str(self.typs_dict))
-            f.write(str(self.node_types_dict))
-    
+
+        keys = ''
+        values = ''
+        for key, val in self.common_strs_dict.items():
+            values += val
+            keys += str(key)+","
+        with open(PATH+"/common_strs.txt", 'w') as f:
+            f.write(keys)
+        with open(PATH+"/common_strs.bin", 'bw') as f:
+            bitstring.BitArray(bin=values).tofile(f)
+
 class CompressionEncoder(Encoder):
+
     def prepare_metadata_json(self):
         ''' 
             - reference encodes metadata JSON with corresponding defaults
@@ -200,6 +234,7 @@ class CompressionEncoder(Encoder):
         entry = ''
         equal_keys = []
         encoded_keys = []
+        common_keys = []
         other_keys = []
         diffs = []
         encoded_date = ''
@@ -218,14 +253,16 @@ class CompressionEncoder(Encoder):
                 continue
             
             # ENCODED VALUES 
-            # if val is a common string, replace it with an identifier
-            if isinstance(val, str) and val in self.vals_dict:
+            # if val is a common prov string, replace it with an identifier
+            if str(val) in self.vals_dict:
                 encoded_keys.append(self.keys_dict[key]+self.vals_dict[val])
-            # replace the types
-            elif key == 'cf:type':
-                if isinstance(val, int):
-                    encoded_keys.append(self.keys_dict[key]+self.node_types_dict[val])
             
+            # COMMON VALUES 
+            # if val is a common string (to this specific provenance), replace it with an identifier
+            elif str(val) in self.common_strs_dict:
+                common_keys.append(self.keys_dict[key]+self.common_strs_dict[str(val)])
+             
+            # OTHER VALUES 
             # this is some other key we couldn't encode 
             # record the length of the string in bits
             else:
@@ -241,10 +278,12 @@ class CompressionEncoder(Encoder):
 
         entry += (util.int2bitstr(len(equal_keys), Encoder.key_bits) 
             + util.int2bitstr(len(encoded_keys), Encoder.key_bits) 
+            + util.int2bitstr(len(common_keys), Encoder.key_bits) 
             + util.int2bitstr(len(other_keys), Encoder.key_bits) 
             + util.int2bitstr(len(diffs), Encoder.key_bits) 
             + ''.join(equal_keys) 
             + ''.join(encoded_keys) 
+            + ''.join(common_keys) 
             + ''.join(other_keys)
             + encoded_date)
         return entry
@@ -264,7 +303,8 @@ class CompressionEncoder(Encoder):
             key_bits    [num_encoded_keys]
             key_bits    [num_other_keys]
             key_bits*num_equal_keys                 [listof(equal_keys)]
-            (key_bits+val_bits)*num_encoded_keys    [listof(key+encoded_value)]
+            (key_bits+val_bits)*num_encoded_keys    [listof(key+encoded_prov_value)]
+            (key_bits+strdict_bits)*num_common_keys [listof(key+encoded_common_value)]
             (key_bits+8+value_len)*num_other_keys   [listof(key+val_length(bytes)+value)]
             encoded date
                 date_type_bits + date_bits[date_type] for all the parts of the time

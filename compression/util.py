@@ -66,6 +66,7 @@ class WriterBitString:
         self.byts[-1] |= b << self.pos
         self.pos -= 1
         self.len += 1
+        return 1
 
     # Writes a non-negative integer to the bitstring, with the highest-order
     # bit appearing leftmost.
@@ -80,6 +81,7 @@ class WriterBitString:
         while k >= 0:
             self.write_bit((i & (1 << k)) >> k)
             k -= 1
+        return max(width, k + 1)
 
     def to_bytearray(self):
         return self.byts

@@ -35,7 +35,7 @@ private:
     map<unsigned char, string>key_dict;
     map<unsigned char, string>prov_label_dict;
     map<unsigned char, string>val_dict;
-    map<unsigned char, string>commonstr_dict;
+    map<int, string>commonstr_dict;
 
     map<string, string>default_node_data;
     map<string, string>default_relation_data;

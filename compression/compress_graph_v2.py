@@ -15,41 +15,22 @@ class GraphCompressorV2:
         (graph, collapsed, uf) = self.pp.process()
         (afwd, aback, collapsed_nodes) = self._construct_asymmetric_graphs(
             graph, collapsed, uf)
-        for k, v in afwd.g.items():
-            print(k, v)
-        print()
-        for k, v in aback.g.items():
-            print(k, v)
-        print(collapsed_nodes)
-
         (delta_fwd, fwd_stats) = self._delta_encode_graph(afwd,
                                                           collapsed_nodes)
         (delta_back, back_stats) = self._delta_encode_graph(aback,
                                                             collapsed_nodes)
-        print()
-        for k, v in delta_fwd.g.items():
-            print(k, v)
-        print(fwd_stats)
-        print()
-        for k, v in delta_back.g.items():
-            print(k, v)
-        print(back_stats)
-        print()
 
         header_byts = self._compress_header(fwd_stats, back_stats)
-        (node_byts, index, sizes) = self._compress_nodes(
-            delta_fwd, fwd_stats, delta_back, back_stats, collapsed_nodes, uf
-        )
+        (node_byts, index) = self._compress_nodes(delta_fwd, fwd_stats,
+                                                  delta_back, back_stats,
+                                                  collapsed_nodes, uf)
 
         nbits_index_entry = nbits_for_int(max(index))
-        nbits_size_entry = nbits_for_int(max(sizes))
         header_byts.extend(nbits_index_entry.to_bytes(1, byteorder="big"))
-        header_byts.extend(nbits_size_entry.to_bytes(1, byteorder="big"))
         header_byts.extend(len(index).to_bytes(4, byteorder="big"))
         wbs = WriterBitString()
-        for (idx, size) in zip(index, sizes):
+        for idx in index:
             wbs.write_int(idx, nbits_index_entry)
-            wbs.write_int(size, nbits_size_entry)
         header_byts.extend(wbs.to_bytearray())
         
         self.header_byts = header_byts
@@ -114,23 +95,24 @@ class GraphCompressorV2:
                     1, byteorder="big"))
         return byts
 
-    # XXX Need to include delta off of prev node in index
     def _compress_nodes(self, delta_fwd, fwd_stats, delta_back, back_stats,
                   collapsed_nodes, uf):
         index = [0]
-        sizes = []
+        sizes = {self.pp.id2num(k):uf.get_size(k) for k in uf.leaders()}
+        nbits_size_entry = nbits_for_int(max(sizes.values()))
         wbs = WriterBitString()
         prev = 0 
         for node in sorted(delta_fwd.get_vertices()):
             c = node in collapsed_nodes 
             length = wbs.write_bit(1 if c else 0)
+            if c:
+                length += wbs.write_int(sizes[node], nbits_size_entry)
             length += self._compress_edges(node, delta_fwd, fwd_stats[c], wbs)
             length += self._compress_edges(node, delta_back, back_stats[c], wbs)
             index.append(length)
-            sizes.append(uf.get_size(self.pp.num2id(node)))
             prev = node
         index.pop()
-        return (wbs.to_bytearray(), index, sizes)
+        return (wbs.to_bytearray(), index)
 
     def _compress_edges(self, node, delta_graph, stats, wbs):
         length = 0

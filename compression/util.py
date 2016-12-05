@@ -50,6 +50,15 @@ class ReaderBitString:
             width -= 1
         return i
 
+    def read_int_at_pos(self, pos, width):
+        self.index = pos // 8
+        self.pos = 7 - (pos % 8)
+        assert self.index < len(self.byts)
+        return self.read_int(width)
+
+    def read_bit_at_pos(self, pos):
+        return self.read_int_at_pos(pos, 1)
+
 class WriterBitString:
 
     def __init__(self):
@@ -72,7 +81,9 @@ class WriterBitString:
     # bit appearing leftmost.
     def write_int(self, i, width=0):
         assert i >= 0
-        k = nbits_for_int(i) - 1
+        sz = nbits_for_int(i)
+        written = max(sz, width)
+        k = sz - 1
         if width:
             assert width >= k + 1 
             while width > k + 1:
@@ -81,7 +92,7 @@ class WriterBitString:
         while k >= 0:
             self.write_bit((i & (1 << k)) >> k)
             k -= 1
-        return max(width, k + 1)
+        return written 
 
     def to_bytearray(self):
         return self.byts

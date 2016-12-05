@@ -108,8 +108,7 @@ class GraphCompressorV2:
         prev = 0
         for node in sorted(delta_fwd.get_vertices()):
             c = node in collapsed_nodes
-            length = wbs.write_bit(1 if c else 0)
-            length += self._compress_edges(node, delta_fwd, fwd_stats[c], wbs)
+            length = self._compress_edges(node, delta_fwd, fwd_stats[c], wbs)
             length += self._compress_edges(node, delta_back, back_stats[c], wbs)
             index.append(length)
             prev = node
@@ -133,6 +132,12 @@ class GraphCompressorV2:
                 length += wbs.write_int(edge, nbits_delta)
         return length
 
+    def write_to_file(self, base_filename):
+        assert self.is_initialized
+        with open(base_filename + ".cpg2", "wb") as f:
+            f.write(self.header_byts)
+            f.write(self.node_byts)
+
     def decompress(self):
         assert self.is_initialized
         rbs = ReaderBitString(self.header_byts)
@@ -146,8 +151,7 @@ class GraphCompressorV2:
         nbits_size_entry = rbs.read_int(8)
         nbits_index_entry = rbs.read_int(8)
         index_length = rbs.read_int(32)
-        print(fwd_info, back_info, nbits_size_entry, nbits_index_entry,
-              index_length)
+
         cur = 0
         index = []
         sizes = []
@@ -155,16 +159,122 @@ class GraphCompressorV2:
             cur += rbs.read_int(nbits_index_entry)
             index.append(cur)
             sizes.append(rbs.read_int(nbits_size_entry))
-        print(index)
-        print(sizes)
 
-        return CompressedGraph(fwd_info, back_info, index, sizes,
+        id2idx = {}
+        if index:
+            id2idx[0] = 0
+        id_ = 0
+        for (idx, sz) in zip(index[1:], sizes[:-1]):
+            id_ += sz
+            id2idx[id_] = idx
+        node_count = id_  + sizes[-1]
+
+        return CompressedGraph(fwd_info, back_info, id2idx, node_count,
                                self.node_byts)
 
 
 class CompressedGraph:
-    def __init__(self, fwd_info, back_info, index, sizes, node_byts):
-        pass
+    def __init__(self, fwd_info, back_info, id2bit, node_count, node_byts):
+        self.fwd_info = fwd_info
+        self.back_info = back_info
+        self.id2bit = id2bit
+        self.rbs = ReaderBitString(node_byts)
+        self.index = sorted(id2bit.keys())
+        self.index.append(node_count)
+
+    def __len__(self):
+        return self.index[-1]
+
+    def _get_leader_node(self, node):
+        assert node >= 0 and node < self.index[-1]
+        for (i, _id) in enumerate(self.index[::-1]):
+            if _id <= node:
+                return (len(self.index) - i - 1, _id)
+
+    def _get_node_size(self, idx):
+        return self.index[idx + 1] - self.index[idx]
+
+    def _read_edges_raw(self, node, pos, info):
+        degree = self.rbs.read_int_at_pos(pos, info["nbits_degree"])
+        if not degree:
+            return []
+        first_delta = self.rbs.read_int(info["nbits_delta"] + 1)
+        if first_delta % 2 == 0:
+            first_delta //= 2
+        else:
+            first_delta = -(first_delta - 1) // 2
+        edges = [node + first_delta]
+        for _ in range(degree - 1):
+            delta = self.rbs.read_int(info["nbits_delta"])
+            edges.append(edges[-1] + delta)
+        return edges
+
+    def _get_outgoing_edges_raw(self, idx):
+        node = self.index[idx]
+        c = self._get_node_size(idx) > 1
+        byte_pos = self.id2bit[node]
+        return self._read_edges_raw(node, byte_pos, self.fwd_info[c]) 
+
+    def _get_incoming_edges_raw(self, idx):
+        node = self.index[idx]
+        c = self._get_node_size(idx) > 1
+        byte_pos = self.id2bit[node]
+        degree = self.rbs.read_int_at_pos(byte_pos,
+                                          self.fwd_info[c]["nbits_degree"])
+        byte_pos += self.fwd_info[c]["nbits_degree"]
+        if degree:
+            byte_pos += self.fwd_info[c]["nbits_delta"] + 1
+            byte_pos += (degree - 1) * self.fwd_info[c]["nbits_delta"]
+        return self._read_edges_raw(node, byte_pos, self.back_info[c])
+
+    def _get_edges(self, node, is_fwd, get_my_edges, get_other_edges):
+        idx, leader = self._get_leader_node(node)
+        byt_pos = self.id2bit[leader]
+        sz = self._get_node_size(idx)
+        c = sz > 1
+        raw_edges = get_my_edges(idx)
+        if not c:
+            return raw_edges
+
+        my_output = []
+        my_low = leader
+        my_hi = my_low + sz
+        my_idx = 0
+
+        if is_fwd and node - 1 >= my_low:
+            my_output.append(node - 1)
+        elif (not is_fwd) and node + 1 < my_hi:
+            my_output.append(node + 1)
+
+        while my_idx < len(raw_edges):
+            e = raw_edges[my_idx]
+            (other_idx, other_leader) = self._get_leader_node(e)
+            other_low = other_leader
+            other_hi = other_low + self._get_node_size(other_idx)
+            other_edges = get_other_edges(other_idx)
+
+            other_idx = 0
+            while other_idx < len(other_edges):
+                edge = other_edges[other_idx]
+                if edge < my_low:
+                    other_idx += 1
+                    continue
+                if edge >= my_hi:
+                    break
+                if edge == node:
+                    my_output.append(raw_edges[my_idx])
+                my_idx += 1
+                other_idx += 1
+        return sorted(my_output)
+
+
+    def get_outgoing_edges(self, node):
+        return self._get_edges(node, True, self._get_outgoing_edges_raw,
+                               self._get_incoming_edges_raw)
+
+    def get_incoming_edges(self, node):
+        return self._get_edges(node, False, self._get_incoming_edges_raw,
+                               self._get_outgoing_edges_raw)
 
 
 def main():
@@ -174,7 +284,10 @@ def main():
     pp = PreprocessorV2(json_obj)
     gc = GraphCompressorV2(pp)
     gc.compress()
-    gc.decompress()
+    g = gc.decompress()
+    for i in range(len(g)):
+        print(i, g.get_outgoing_edges(i), g.get_incoming_edges(i))
+    gc.write_to_file("trial")
 
 if __name__ == "__main__":
     main()

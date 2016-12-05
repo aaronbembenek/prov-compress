@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from collections import deque
-from graph import Graph
+from graph import LabeledBackEdgeGraph
 import json
 import sys
 from unionfind import CustomUnionFind
@@ -43,21 +43,25 @@ class PreprocessorV2:
 
     def __init__(self, json_obj):
         self.json_obj = json_obj
-        self.initialized = False
+        self.is_initialized = False
 
     def process(self):
-        if self.initialized:
-            return
+        if self.is_initialized:
+            return (self.graph, self.collapsed, self.uf)
 
         graph = self._process_json()
         (collapsed, uf) = self._collapse_versions(graph)
         self._number_identifiers(graph, collapsed, uf)
 
-        self.initialized = True
+        self.collapsed = collapsed
+        self.graph = graph
+        self.uf = uf
+        self.is_initialized = True
+        return self.process() 
 
     def _process_json(self):
         self.metadata = {}
-        graph = Graph()
+        graph = LabeledBackEdgeGraph()
         missing = set()
         for line in self.json_obj:
             self._process_line(line, graph, missing)
@@ -114,7 +118,7 @@ class PreprocessorV2:
                 if is_version_edge(edge, self.metadata):
                     uf.union(edge.dest, v)
         edge_map = {}
-        collapsed = Graph()
+        collapsed = LabeledBackEdgeGraph()
         for v in vs:
             v = uf.find(v)
             edge_map.setdefault(v, set())
@@ -147,6 +151,23 @@ class PreprocessorV2:
             for _id in sorted_ids:
                 f.write(_id + ",")
         self.id_map = id_map
+        self.id_map_rev = {v:k for (k, v) in id_map.items()} 
+
+    def id2num(self, _id):
+        assert self.is_initialized
+        return self.id_map[_id]
+
+    def num2id(self, number):
+        assert self.is_initialized
+        return self.id_map_rev[number]
+
+    def get_graph(self):
+        assert self.is_initialized
+        return self.graph
+
+    def get_metadata(self):
+        assert self.is_initialized
+        return self.metadata
 
 
 class TransposeBfsRanker:

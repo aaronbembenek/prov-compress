@@ -31,7 +31,6 @@ class Plotter():
                     size_dict["xzratio"] = sizes[7]
                     size_dict["commonstr"] = sizes[8]
                     data[curfile]["sizes"] = size_dict
-        ''' 
         with open(COMPRESSION_PERF_FILE, 'r') as f:
             curquery = 0
             for line in f.readlines():
@@ -60,11 +59,10 @@ class Plotter():
                     data[curfile]["dqueries"][curquery]["vm"] = vm
                 else:
                     data[curfile]["dqueries"][curquery]["times"] = [int(i.strip(' ')) for i in line.strip('\n').split(',')[:-1]]
-        '''
         self.data = data 
 
     def construct_graph_data(self):
-        self.queries = [0,1,2,3,4,5,6]
+        self.queries = [0,1,2,3,4,5]
         self.x_labels = sorted(self.data.keys(), key=lambda v: int(self.data[v]["sizes"]["original"]))
         self.xz = []
         self.metadata = []
@@ -88,13 +86,11 @@ class Plotter():
                     /float(self.data[f]["sizes"]["original"]))
             self.sizes.append(float(self.data[f]["sizes"]["original"]))
             self.times.append(float(self.data[f]["time"]))
-        '''
             for q in self.queries:
-                self.dummy_qs[f].setdefault(q, []).append(self.data[f]['dqueries'][q]["times"])
-                self.compressed_qs[f].setdefault(q, []).append(self.data[f]['cqueries'][q]["times"])
-                self.dummy_vm[q].append(self.data[f]['dqueries'][q]['vm'])
-                self.compressed_vm[q].append(self.data[f]['cqueries'][q]['vm'])
-        '''
+                self.dummy_qs[f].setdefault(q, []).append(list(map(float,(self.data[f]['dqueries'][q]["times"][:-1]))))
+                self.compressed_qs[f].setdefault(q, []).append(list(map(float,self.data[f]['cqueries'][q]["times"][:-1])))
+                self.dummy_vm[q].append(float(self.data[f]['dqueries'][q]['vm']))
+                self.compressed_vm[q].append(float(self.data[f]['cqueries'][q]['vm']))
 
     def proportions_graph(self):
         ''' 
@@ -151,7 +147,7 @@ class Plotter():
             fig, axes = plt.subplots(ncols=len(self.x_labels), sharey=True)
             fig.subplots_adjust(wspace=0)
             for ax, name in zip(axes, self.x_labels):    
-                ax.boxplot([self.dummy_qs[name][q], self.compressed_qs[name][q]])
+                ax.boxplot([self.dummy_qs[name][q], self.compressed_qs[name][q]], showfliers=False)
                 ax.set(xticklabels=['Dummy', 'Compressed'])
                 ax.margins(0.05) # Optional
        
@@ -168,24 +164,24 @@ class Plotter():
         x2 = [x+width for x in x1]
 
         # plot of memory usage
-        for q in self.queries:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(x1,self.dummy_vm[q])
-            ax.plot(x2,compressed_vm[q])
-            ax.set_xlabel('Provenance Data Files (ordered by increasing size)')
-            ax.set_ylabel('Virtual Memory Used (Kb)')
-            ax.set_title('Virtual Memory Consumption of Query %d' % q)
-            plt.show()
-            plt.savefig("results/mem_%d.png" % q)
-            plt.close()
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        rects1 = ax.bar(x1,self.dummy_vm[0], width, color="black")
+        rects2 = ax.bar(x2,self.compressed_vm[0], width, color="red")
+        ax.legend( (rects1[0], rects2[0]), ('Uncompressed', 'Compressed'))
+        ax.set_xlabel('Provenance Data Files (ordered by increasing size)')
+        ax.set_ylabel('Virtual Memory Used (Kb)')
+        ax.set_title('Virtual Memory Consumption')
+        plt.show()
+        plt.savefig("results/mem.png")
+        plt.close()
 
 def main():
     p = Plotter()
     p.construct_graph_data()
-    p.proportions_graph()
-    p.compression_times_graph()
-    #p.query_perf_graphs()
+    #p.proportions_graph()
+    #p.compression_times_graph()
+    p.query_perf_graphs()
     #p.query_mem_graphs()
 
 if __name__ == "__main__":

@@ -70,7 +70,6 @@ class Encoder():
     # number of common strings we will map to dictionary
     strdict_threshold = 300 
     strdict_bits = util.nbits_for_int(strdict_threshold)
-    print(strdict_bits)
 
     def __init__(self, graph, metadata, iti):
         self.graph = graph

@@ -2,7 +2,7 @@
 
 from graph import Graph
 from preprocess_v2 import clean_camflow_json, is_version_edge, PreprocessorV2
-from util import nbits_for_int, WriterBitString
+from util import nbits_for_int, ReaderBitString, WriterBitString
 
 class GraphCompressorV2:
 
@@ -19,18 +19,22 @@ class GraphCompressorV2:
                                                           collapsed_nodes)
         (delta_back, back_stats) = self._delta_encode_graph(aback,
                                                             collapsed_nodes)
+        sizes = {self.pp.id2num(k):uf.get_size(k) for k in uf.leaders()}
+        nbits_size_entry = nbits_for_int(max(sizes.values()))
 
-        header_byts = self._compress_header(fwd_stats, back_stats)
+        header_byts = self._compress_header(fwd_stats, back_stats,
+                                            nbits_size_entry)
         (node_byts, index) = self._compress_nodes(delta_fwd, fwd_stats,
                                                   delta_back, back_stats,
-                                                  collapsed_nodes, uf)
+                                                  collapsed_nodes)
 
         nbits_index_entry = nbits_for_int(max(index))
         header_byts.extend(nbits_index_entry.to_bytes(1, byteorder="big"))
         header_byts.extend(len(index).to_bytes(4, byteorder="big"))
         wbs = WriterBitString()
-        for idx in index:
+        for (idx, sz) in zip(index, [sizes[x] for x in sorted(sizes.keys())]):
             wbs.write_int(idx, nbits_index_entry)
+            wbs.write_int(sz, nbits_size_entry)
         header_byts.extend(wbs.to_bytearray())
         
         self.header_byts = header_byts
@@ -85,7 +89,7 @@ class GraphCompressorV2:
                                             nbits_for_int(max(abs_deltas)))
         return (delta_graph, stats)
 
-    def _compress_header(self, fwd_stats, back_stats):
+    def _compress_header(self, fwd_stats, back_stats, nbits_size_entry):
         byts = bytearray()
         for stats in fwd_stats, back_stats:
             for is_collapsed in [True, False]:
@@ -93,20 +97,18 @@ class GraphCompressorV2:
                     1, byteorder="big"))
                 byts.extend(stats[is_collapsed]["nbits_delta"].to_bytes(
                     1, byteorder="big"))
+        byts.extend(nbits_size_entry.to_bytes(1, byteorder="big"))
         return byts
 
     def _compress_nodes(self, delta_fwd, fwd_stats, delta_back, back_stats,
-                  collapsed_nodes, uf):
+                        collapsed_nodes):
         index = [0]
-        sizes = {self.pp.id2num(k):uf.get_size(k) for k in uf.leaders()}
-        nbits_size_entry = nbits_for_int(max(sizes.values()))
+        szs = []
         wbs = WriterBitString()
-        prev = 0 
+        prev = 0
         for node in sorted(delta_fwd.get_vertices()):
-            c = node in collapsed_nodes 
+            c = node in collapsed_nodes
             length = wbs.write_bit(1 if c else 0)
-            if c:
-                length += wbs.write_int(sizes[node], nbits_size_entry)
             length += self._compress_edges(node, delta_fwd, fwd_stats[c], wbs)
             length += self._compress_edges(node, delta_back, back_stats[c], wbs)
             index.append(length)
@@ -131,6 +133,40 @@ class GraphCompressorV2:
                 length += wbs.write_int(edge, nbits_delta)
         return length
 
+    def decompress(self):
+        assert self.is_initialized
+        rbs = ReaderBitString(self.header_byts)
+        fwd_info = {True:{}, False:{}}
+        back_info = {True:{}, False:{}}
+        for info in [fwd_info, back_info]:
+            for is_collapsed in [True, False]:
+                d = info[is_collapsed]
+                d["nbits_degree"] = rbs.read_int(8)
+                d["nbits_delta"] = rbs.read_int(8)
+        nbits_size_entry = rbs.read_int(8)
+        nbits_index_entry = rbs.read_int(8)
+        index_length = rbs.read_int(32)
+        print(fwd_info, back_info, nbits_size_entry, nbits_index_entry,
+              index_length)
+        cur = 0
+        index = []
+        sizes = []
+        for _ in range(index_length):
+            cur += rbs.read_int(nbits_index_entry)
+            index.append(cur)
+            sizes.append(rbs.read_int(nbits_size_entry))
+        print(index)
+        print(sizes)
+
+        return CompressedGraph(fwd_info, back_info, index, sizes,
+                               self.node_byts)
+
+
+class CompressedGraph:
+    def __init__(self, fwd_info, back_info, index, sizes, node_byts):
+        pass
+
+
 def main():
     with open("example.json") as f:
         json_obj = " ".join([line.strip() for line in f])
@@ -138,6 +174,7 @@ def main():
     pp = PreprocessorV2(json_obj)
     gc = GraphCompressorV2(pp)
     gc.compress()
+    gc.decompress()
 
 if __name__ == "__main__":
     main()

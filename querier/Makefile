@@ -19,7 +19,7 @@ DEPS = $(OBJS)
 query: query.o $(DEPS)
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $< $(OBJS)
 
-graph: graph_test.o graph.o graph_v1.o helpers.o json_graph.o\
+graph: graph_test_v2.o graph.o graph_v1.o helpers.o json_graph.o\
 	metadata_compressed.o jsoncpp.o graph_v2.o
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^
 

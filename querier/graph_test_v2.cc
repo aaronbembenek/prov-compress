@@ -9,5 +9,5 @@ int main() {
     read_file("../compression/trial.cpg2", buffer);
 
     Graph* graph = new Graph_V2(buffer);
-    cout << graph->get_node_count() << endl;
+    (void) graph;
 }

@@ -102,7 +102,6 @@ class Plotter():
        
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        width = 0.35
         rects1 = ax.bar(x1, self.xz, width, color='black')
         rects2 = ax.bar(x2, self.metadata, width, color='red')
         rects3 = ax.bar(x2, self.graph, width, color='green', bottom=self.metadata)
@@ -118,8 +117,8 @@ class Plotter():
         #plt.setp(xtickNames, rotation=45, fontsize=10)
         
         ax.legend( (rects1[0], rects2[0], rects3[0]), ('XZ -9', 'Compressed Metadata', 'Compressed Graph') )
-        plt.show()
         plt.savefig("results/sizes.png")
+        plt.show()
         plt.close()
 
     def compression_times_graph(self):
@@ -134,8 +133,8 @@ class Plotter():
         ax.set_ylabel('Time to Compress')
         ax.set_title('Time to Compress vs. Provenance Data Size')
         ax.plot(self.sizes, self.times)
-        plt.show()
         plt.savefig("results/times.png")
+        plt.show()
         plt.close()
 
     def query_perf_graphs(self):
@@ -154,8 +153,8 @@ class Plotter():
             fig.text(0.5, 0.04, 'Provenance Data Files (ordered by increasing size)', ha='center')
             fig.text(0.04, 0.5, 'Time to perform 100 Queries', va='center', rotation='vertical')
             fig.suptitle('Performance of Query %d' % q)
-            plt.show()
             plt.savefig("results/perf_%d.png" % q)
+            plt.show()
             plt.close()
 
     def query_mem_graphs(self):
@@ -172,8 +171,8 @@ class Plotter():
         ax.set_xlabel('Provenance Data Files (ordered by increasing size)')
         ax.set_ylabel('Virtual Memory Used (Kb)')
         ax.set_title('Virtual Memory Consumption')
-        plt.show()
         plt.savefig("results/mem.png")
+        plt.show()
         plt.close()
 
 def main():

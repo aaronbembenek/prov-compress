@@ -229,11 +229,10 @@ class CompressedGraph:
 
     def _get_edges(self, node, is_fwd, get_my_edges, get_other_edges):
         idx, leader = self._get_leader_node(node)
-        byt_pos = self.id2bit[leader]
+        #byt_pos = self.id2bit[leader]
         sz = self._get_node_size(idx)
-        c = sz > 1
         raw_edges = get_my_edges(idx)
-        if not c:
+        if sz < 2:
             return raw_edges
 
         my_output = []
@@ -247,10 +246,7 @@ class CompressedGraph:
             my_output.append(node + 1)
 
         while my_idx < len(raw_edges):
-            (other_idx, other_leader) = self._get_leader_node(
-                raw_edges[my_idx])
-            other_low = other_leader
-            other_hi = other_low + self._get_node_size(other_idx)
+            (other_idx, _) = self._get_leader_node(raw_edges[my_idx])
             other_edges = get_other_edges(other_idx)
 
             other_idx = 0

@@ -14,8 +14,8 @@ class Graph_V2 : public Graph {
         ~Graph_V2();
         std::vector<Node_Id> get_outgoing_edges(Node_Id) override;
         std::vector<Node_Id> get_incoming_edges(Node_Id) override;
-        std::map<std::string, std::vector<Node_Id>> friends_of(Node_Id, Node_Id)
-            override;
+        std::map<std::string, std::vector<Node_Id>> friends_of(Node_Id, Node_Id,
+                Metadata*) override;
         size_t get_node_count() override;
     private:
 #if BESAFE

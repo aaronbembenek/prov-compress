@@ -62,7 +62,9 @@ size_t JsonGraph::get_node_count() {
         return graph_.size();
 }
 
-map<string, vector<Node_Id>> JsonGraph::friends_of(Node_Id pathname, Node_Id task) {
+// Third parameter unused.
+map<string, vector<Node_Id>> JsonGraph::friends_of(Node_Id pathname, Node_Id task,
+        Metadata*) {
     map<string, vector<Node_Id>> friend_files;
 
     File_Id file_id = pathname2file[pathname];

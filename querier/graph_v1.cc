@@ -40,7 +40,7 @@ Graph_V1::Graph_V1(string& compressed) : data(compressed) {
 }
 
 // TODO
-map<string, vector<Node_Id>> Graph_V1::friends_of(Node_Id, Node_Id) {
+map<string, vector<Node_Id>> Graph_V1::friends_of(Node_Id, Node_Id, Metadata*) {
     return {};
 }
 

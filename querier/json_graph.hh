@@ -33,7 +33,7 @@ public:
     string get_identifier(Node_Id) override;
     vector<string> get_node_ids() override;
     
-    map<string, vector<Node_Id>> friends_of(Node_Id, Node_Id) override;
+    map<string, vector<Node_Id>> friends_of(Node_Id, Node_Id, Metadata*) override;
     std::vector<Node_Id> get_outgoing_edges(Node_Id) override;
     std::vector<Node_Id> get_incoming_edges(Node_Id) override;
     size_t get_node_count() override;

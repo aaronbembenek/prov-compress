@@ -22,6 +22,8 @@
 
 using namespace std;
 
+typedef size_t Node_Id;
+
 // Dictionaries for identifiers
 extern map<string, int> id2intid;
 extern map<int, string> intid2id;

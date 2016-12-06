@@ -200,6 +200,47 @@ vector<Node_Id> Graph_V2::get_edges(Node_Id node, bool is_fwd,
     return edges;
 }
 
-map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id, Node_Id) {
+map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task,
+        Metadata* metadata) {
+    /*
+     * From pathname, get file inodes.
+     * Get Group_Idx of task and each file_inode
+     * Assert only one file inode
+     * Find all edges (both forward and back)
+     * Between file inode and graph
+     * -> go from file because fewer edges
+     * find a set of relations
+     *
+     * for all edges going out or in from task,
+     * if relation matches
+     * get group_idx of that side
+     * if that group is a file inode
+     * get path_name and add to output
+     */
+
+    vector<Node_Id> pathname_edges = get_outgoing_edges(pathname);
+    assert(pathname_edges.size() == 1);
+    Group_Idx file_idx = get_group_index(pathname_edges[0]);
+    Node_Id file_lo = get_group_id(file_idx);
+    Node_Id file_hi = file_lo + get_group_size(file_idx);
+
+    Group_Idx task_idx = get_group_index(task);
+    Node_Id task_lo = get_group_id(task_idx);
+    Node_Id task_hi = task_lo + get_group_size(task_idx);
+
+    vector<Node_Id> file_out = get_outgoing_edges_raw(file_idx);
+    vector<Node_Id> file_in = get_incoming_edges_raw(file_idx);
+    set<string> relations;
+
+    for (vector<Node_Id> edges : {file_out, file_in}) {
+        for (Node_Id edge : edges) {
+            if (edge >= task_lo && edge < task_hi) {
+                relations.insert("hello");
+            }
+        }
+    }
+
+
+
     return {};
 }

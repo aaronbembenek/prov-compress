@@ -4,11 +4,8 @@
 #include "graph.hh"
 #include "helpers.hh"
 
-#ifdef BESAFE
+#if BESAFE
 #include <boost/serialization/strong_typedef.hpp>
-BOOST_STRONG_TYPEDEF(size_t, Group_Idx)
-#else
-typedef size_t Group_Idx;
 #endif
 
 class Graph_V2 : public Graph {
@@ -21,6 +18,11 @@ class Graph_V2 : public Graph {
             override;
         size_t get_node_count() override;
     private:
+#if BESAFE
+        BOOST_STRONG_TYPEDEF(size_t, Group_Idx)
+#else
+        typedef size_t Group_Idx;
+#endif
         struct info_t {
             size_t nbits_degree;
             size_t nbits_delta;

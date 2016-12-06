@@ -13,8 +13,8 @@ class LabeledBackEdgeGraph:
     def __init__(self):
         self.g = {}
 
-    def __len__(self):
-        return len(g)
+    def get_node_count(self):
+        return len(self.g)
 
     def add_vertex(self, node):
         self.g.setdefault(node, ([], []))
@@ -38,8 +38,8 @@ class Graph:
     def __init__(self):
         self.g = {}
 
-    def __len__(self):
-        return len(g)
+    def get_node_count(self):
+        return len(self.g)
 
     def add_vertex(self, node):
         self.g.setdefault(node, [])

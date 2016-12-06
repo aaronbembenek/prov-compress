@@ -1,42 +1,41 @@
 #!/usr/bin/python3
-import process_json as pj
-import compress_graph
+from compress_graph_v2 import GraphCompressorV2
 from compress_metadata import CompressionEncoder
-from preprocess import BfsPreprocessor
+from preprocess_v2 import clean_camflow_json, PreprocessorV2
 import sys
 import time
 
 def main():
     if len(sys.argv) == 1:
-        infile = pj.PATH+"/tmp/audit.log"
-        outfile = pj.PATH+"/compressed_metadata.txt"
-        graph_out = pj.PATH+"/graph"
+        infile = "/tmp/audit.log"
+        outfile = "compressed_metadata.txt"
+        graph_out = "graph"
     elif len(sys.argv) == 2:
         infile = sys.argv[1]
-        outfile = pj.PATH+"/compressed_metadata.txt"
-        graph_out = pj.PATH+"/graph"
+        outfile = "compressed_metadata.txt"
+        graph_out = "graph"
     elif len(sys.argv) == 3:
         infile = sys.argv[1]
         outfile = sys.argv[2]
-        graph_out = pj.PATH+"/graph"
+        graph_out = "graph"
     else:
         print("Usage: ./process_json.py [infile] [outfile]")
         sys.exit(1)
 
-    graph, metadata = pj.json_to_graph_data(infile)
-    #print("Using infile %s\nUsing outfile %s" % (infile, outfile))
-    r = BfsPreprocessor(graph, metadata)
+    with open(infile) as f:
+        pp = PreprocessorV2(clean_camflow_json(f))
+    pp.process()
 
     start = time.process_time()
-    iti = r.construct_identifier_ids()
-    e = CompressionEncoder(graph, metadata, iti)
+    e = CompressionEncoder(pp)
     e.compress_metadata()
-    c = compress_graph.BasicCompressor(r)
+    c = GraphCompressorV2(pp)
     c.compress()
     end = time.process_time()
 
     e.write_to_file(outfile)
-    c.write_to_file(graph_out)
+    # Continue to use old extension, to make life easier (maybe).
+    c.write_to_file(graph_out, ext="cpg")
 
     print("Compression Time: ", end-start)
 

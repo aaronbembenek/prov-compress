@@ -71,12 +71,10 @@ class Encoder():
     strdict_threshold = 300 
     strdict_bits = util.nbits_for_int(strdict_threshold)
 
-    def __init__(self, graph, metadata, iti):
-        self.graph = graph
-        self.metadata = metadata 
-        self.iti = iti
-        self.num_nodes = len(graph)
-        self.id_bits = util.nbits_for_int(self.num_nodes)
+    def __init__(self, pp):
+        self.metadata = pp.get_metadata()
+        self.iti = pp.get_id2num_map()
+        self.id_bits = util.nbits_for_int(pp.get_graph().get_node_count())
         self.encoded_json_bits = ''
 
         self.default_node_data = {}

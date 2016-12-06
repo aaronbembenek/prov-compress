@@ -79,7 +79,7 @@ class PreprocessorV2:
             for d in data.keys():
                 if self.metadata[id_].data[d] != data[d]:
                     warn("Different Metadata!")
-                    warn(ident, d, self.metadata[ident].data[d], data[d])
+                    warn(id_, d, self.metadata[id_].data[d], data[d])
 
     def _process_line(self, line, graph, missing):
         for (typ, entries) in line.items():
@@ -93,10 +93,6 @@ class PreprocessorV2:
 
                 # Set up edges in graph.
                 if typ in RELATION_TYPS:
-                    print(typ)
-                    print(RELATION_TYPS[typ][0])
-                    print(RELATION_TYPS[typ][1])
-                    print(data)
                     head = data[RELATION_TYPS[typ][0]]
                     tail = data[RELATION_TYPS[typ][1]]
 
@@ -172,6 +168,10 @@ class PreprocessorV2:
     def get_metadata(self):
         assert self.is_initialized
         return self.metadata
+
+    def get_id2num_map(self):
+        assert self.is_initialized
+        return self.id_map
 
 
 class TransposeBfsRanker:

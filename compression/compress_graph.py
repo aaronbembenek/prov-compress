@@ -16,10 +16,10 @@ class Compressor(metaclass=abc.ABCMeta):
     def compress(self):
         pass
 
-    def write_to_file(self, base_filename):
+    def write_to_file(self, base_filename, ext="cpg"):
         if not self.compressed:
             self.compress()
-        with open(base_filename + ".cpg", "wb") as f:
+        with open(base_filename + "." + ext, "wb") as f:
             f.write(self.compressed)
 
 class BasicCompressor(Compressor):
@@ -170,12 +170,14 @@ def main():
         g = {1:[0], 0:[4,3], 2:[], 3:[], 4:[2], 5:[4], 6:[7], 7:[]}
         g = {v:[pj.Edge(e, None) for e in edges] for v, edges in g.items()}
         metadata = {}
+        filename = "trial"
     else:
         g, metadata = pj.json_to_graph_data(sys.argv[1])
+        filename = sys.argv[1].split("/")[-1].rsplit(".", 1)[0]
     c = BasicCompressor(preprocess.BfsPreprocessor(g, metadata))
     c.compress()
-    c.write_to_file("trial")
-    print(c.decompress())
+    c.write_to_file(filename)
+    #print(c.decompress())
 
 if __name__ == "__main__":
     main()

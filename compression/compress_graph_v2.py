@@ -133,9 +133,9 @@ class GraphCompressorV2:
                 length += wbs.write_int(edge, nbits_delta)
         return length
 
-    def write_to_file(self, base_filename):
+    def write_to_file(self, base_filename, ext="cpg2"):
         assert self.is_initialized
-        with open(base_filename + ".cpg2", "wb") as f:
+        with open(base_filename + "." + ext, "wb") as f:
             f.write(self.header_byts)
             f.write(self.node_byts)
 
@@ -289,8 +289,8 @@ def main():
         gc = GraphCompressorV2(pp)
         gc.compress()
         g = gc.decompress()
-        for i in range(len(g)):
-            print(i, g.get_outgoing_edges(i), g.get_incoming_edges(i))
+        #for i in range(len(g)):
+        #    print(i, g.get_outgoing_edges(i), g.get_incoming_edges(i))
         basename = _file.split("/")[-1].rsplit(".", 1)[0]
         gc.write_to_file(basename)
 

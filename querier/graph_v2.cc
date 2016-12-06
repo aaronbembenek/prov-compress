@@ -97,7 +97,7 @@ size_t bin_search(Node_Id a[], size_t length, Node_Id x) {
     return hi;
 }
 
-Group_Idx Graph_V2::get_group_index(Node_Id node) {
+Graph_V2::Group_Idx Graph_V2::get_group_index(Node_Id node) {
     return (Group_Idx) bin_search(group_index, group_index_length - 1, node);
 }
 

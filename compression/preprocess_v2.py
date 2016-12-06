@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+from abc import ABCMeta, abstractmethod
 from collections import deque
 from graph import LabeledBackEdgeGraph
 import json
@@ -180,15 +181,18 @@ class PreprocessorV2:
         return self.id_map
 
 
-class TransposeBfsRanker:
-
+class BfsRanker:
     def __init__(self, graph, collapsed, metadata, sizes):
         self.graph = graph
         self.collapsed = collapsed
         self.metadata = metadata
         self.sizes = sizes
 
+    @abstractmethod
     def rank(self):
+        pass
+
+    def _rank(self, get_edges):
         order = self._get_visiting_order()
         rank = 0
         self.rankings = {}
@@ -199,7 +203,7 @@ class TransposeBfsRanker:
             while q:
                 v = q.popleft()
                 rank = self._rank_collapsed(v, rank)
-                dests = [e.dest for e in self.collapsed.get_incoming_edges(v)]
+                dests = [e.dest for e in get_edges(v)]
                 for d in dests:
                     if d not in self.rankings:
                         q.append(d)
@@ -265,6 +269,18 @@ class TransposeBfsRanker:
 #                    acc = local_acc
 #        print(scores)
 #        return sorted(scores.keys(), key=lambda v: -scores[v])
+
+
+class TransposeBfsRanker(BfsRanker):
+
+    def rank(self):
+        return self._rank(self.collapsed.get_incoming_edges)
+
+
+class ForwardBfsRanker(BfsRanker):
+
+    def rank(self):
+        return self._rank(self.collapsed.get_outgoing_edges)
 
 def main():
     with open("example.json") as f:

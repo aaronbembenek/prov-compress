@@ -4,8 +4,6 @@
 #include "graph.hh"
 #include "helpers.hh"
 
-#include <string>
-
 class Graph_V1 : public Graph {
     public:
         Graph_V1(std::string&);

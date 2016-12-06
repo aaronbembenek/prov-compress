@@ -86,5 +86,5 @@ size_t Graph_V1::get_node_count() {
 }
 
 Graph_V1::~Graph_V1() {
-    delete [] this->index;
+    delete [] index;
 }

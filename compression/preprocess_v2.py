@@ -104,7 +104,11 @@ class PreprocessorV2:
                             missing.add(v)
                     graph.add_vertex(head)
                     graph.add_vertex(tail)
-                    graph.add_edge(tail, head, id_)
+                    if head not in [e.dest for e
+                                    in graph.get_outgoing_edges(tail)]:
+                        graph.add_edge(tail, head, id_)
+                    else:
+                        warn("Multiple edges from", tail, "to", head)
                 else:
                     # This is just so that we have a node in the graph
                     # for every entity/activity.
@@ -209,6 +213,8 @@ class TransposeBfsRanker:
             cur = [e.dest for e in self.graph.get_incoming_edges(cur)
                    if is_version_edge(e, self.metadata)]
             assert len(cur) < 2
+            #if len(cur) > 1:
+            #    warn("multiple versions", cur)
         return rank 
 
     # XXX placeholder... but maybe will be good, depending on how CamFlow

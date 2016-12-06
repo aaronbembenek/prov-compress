@@ -64,9 +64,32 @@ size_t JsonGraph::get_node_count() {
 }
 
 vector<Node_Id> JsonGraph::friends_of(Node_Id pathname, Node_Id executable) {
-    (void)(pathname);
-    (void)(executable);
-    return {};
+    vector<Node_Id> friend_files = {};
+
+    auto file_id = pathname2file[pathname];
+    auto exec_file_id = pathname2file[executable];
+    auto exec_tasks = file2tasks[exec_file_id]["exec"];
+    if (!exec_tasks.size()) {
+        return {};
+    }
+    // get the tasks related to this file id
+    auto relation_tasks = file2tasks[file_id];
+    for (auto pair : relation_tasks) {
+        auto relation = pair.first;
+        auto task_ids = pair.second;
+        for (auto task : task_ids) {
+            // this task isn't associated with this executable
+            if (!exec_tasks.count(task)) {
+                continue;
+            }
+            // get all other files related to the task in the same way as this file id
+            for (auto friend_file_id : task2files[task][relation]) {
+                // we want to record the pathnames (not the file ids)
+                friend_files.push_back(file2pathname[friend_file_id]);
+            }
+        }
+    }
+    return friend_files;
 }
 
 void JsonGraph::construct_graph() {
@@ -81,6 +104,7 @@ void JsonGraph::construct_graph() {
         nodeid2id[ctr] = id;
         id2nodeid[id] = ctr++;
     }
+
     for (auto id : relation_ids) {
         auto node_md = get_metadata(id);
         typ = node_md["typ"];
@@ -117,6 +141,34 @@ void JsonGraph::construct_graph() {
         tgraph_[id2nodeid[tail]].push_back(id2nodeid[head]);
         nodeid2id[ctr] = id;
         id2nodeid[id] = ctr++;
+
+        auto head_md = get_metadata(head);
+        auto tail_md = get_metadata(head);
+        assert(tail_md["cf:type"] != "file_name");
+        // map from pathname to file id. this should be a one-to-one mapping
+        if (head_md["cf:type"] == "file_name") {
+            assert(!pathname2file.count(id2nodeid[head])
+                    || (pathname2file.count(id2nodeid[head]) 
+                        && pathname2file[id2nodeid[head]] == stoi(tail_md["cf:id"])));
+            pathname2file[id2nodeid[head]] = stoi(tail_md["cf:id"]);
+            file2pathname[stoi(tail_md["cf:id"])] = id2nodeid[head];
+        }
+        // map from file id to sets of tasks (grouped by relation type)
+        // we account for dependencies that can go either direction
+        else if (head_md["cf:type"] == "file" && tail_md["cf:type"] == "task") {
+            auto file_id = stoi(head_md["cf:id"]);
+            auto task_id = stoi(tail_md["cf:id"]);
+            auto relation_type = node_md["cf:type"];
+            file2tasks[file_id][relation_type].insert(task_id);
+            task2files[task_id][relation_type].insert(file_id);
+        }
+        else if (tail_md["cf:type"] == "file" && head_md["cf:type"] == "task") {
+            auto file_id = stoi(tail_md["cf:id"]);
+            auto task_id = stoi(head_md["cf:id"]);
+            auto relation_type = node_md["cf:type"];
+            file2tasks[file_id][relation_type].insert(task_id);
+            task2files[task_id][relation_type].insert(file_id);
+        }
 	}
 }
 

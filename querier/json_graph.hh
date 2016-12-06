@@ -6,6 +6,8 @@
 
 class JsonGraph: public Metadata, public Graph {
     static vector<string> typs;
+    typedef int Task_Id;
+    typedef int File_Id;
 public:
 	map<Node_Id, vector<Node_Id>> graph_;
 	map<Node_Id, vector<Node_Id>> tgraph_;
@@ -15,6 +17,11 @@ private:
     map<Node_Id, string>nodeid2id;
     vector<string> node_ids;
     vector<string> relation_ids;
+
+    map<File_Id, map<string, set<Task_Id>>> file2tasks;
+    map<Task_Id, map<string, set<File_Id>>> task2files;
+    map<Node_Id, File_Id> pathname2file;
+    map<File_Id, Node_Id> file2pathname;
 
     void construct_graph();
 public:

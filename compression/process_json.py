@@ -144,7 +144,7 @@ def graph_to_dot2(infile):
         data = metadata[node].data
         dtype = str(data["cf:type"])
         if dtype == "file_name":
-            return data["cf:pathname"]
+            return dtype + ": " + data["cf:pathname"]
         return dtype + ", " + node
     s = ["digraph prov {"]
     for v, edges in graph.items():
@@ -193,7 +193,7 @@ def graph_to_dot3(infile):
 
 
 def main():
-    print(graph_to_dot3(sys.argv[1]))
+    print(graph_to_dot2(sys.argv[1]))
 
 if __name__ == "__main__":
     main()

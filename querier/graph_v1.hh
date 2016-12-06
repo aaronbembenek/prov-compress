@@ -10,6 +10,7 @@ class Graph_V1 : public Graph {
         ~Graph_V1();
         std::vector<Node_Id> get_outgoing_edges(Node_Id) override;
         std::vector<Node_Id> get_incoming_edges(Node_Id) override;
+        vector<Node_Id> friends_of(Node_Id, Node_Id) override;
         size_t get_node_count() override;
     private:
         BitSet data;

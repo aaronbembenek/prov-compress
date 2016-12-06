@@ -23,10 +23,11 @@ public:
     Node_Id get_node_id(string) override;
     string get_identifier(Node_Id) override;
     vector<string> get_node_ids() override;
-
-    std::vector<Node_Id> get_outgoing_edges(Node_Id);
-    std::vector<Node_Id> get_incoming_edges(Node_Id);
-    size_t get_node_count();
+    
+    vector<Node_Id> friends_of(Node_Id, Node_Id) override;
+    std::vector<Node_Id> get_outgoing_edges(Node_Id) override;
+    std::vector<Node_Id> get_incoming_edges(Node_Id) override;
+    size_t get_node_count() override;
 };
 
 #endif

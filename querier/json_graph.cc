@@ -63,6 +63,12 @@ size_t JsonGraph::get_node_count() {
         return graph_.size();
 }
 
+vector<Node_Id> JsonGraph::friends_of(Node_Id pathname, Node_Id executable) {
+    (void)(pathname);
+    (void)(executable);
+    return {};
+}
+
 void JsonGraph::construct_graph() {
     Node_Id ctr = 0;
     string typ, head, tail;

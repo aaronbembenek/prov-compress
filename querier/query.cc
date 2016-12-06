@@ -119,7 +119,12 @@ int main(int argc, char *argv[]) {
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             case(5): 
-                times.push_back(measure<>::execution(q, &Querier::friends_of, ids[i]));
+#if COMPRESSED
+                // TODO
+                times.push_back(measure<>::execution(q, &CompressedQuerier::friends_of, ids[i], ids[i]));
+#else
+                times.push_back(measure<>::execution(q, &DummyQuerier::friends_of, ids[i], ids[i]));
+#endif
                 vm_usage = max(vm_usage, virtualmem_usage());
                 break;
             default: assert(0);

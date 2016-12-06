@@ -39,6 +39,11 @@ Graph_V1::Graph_V1(string& compressed) : data(compressed) {
     */
 }
 
+// TODO
+vector<Node_Id> Graph_V1::friends_of(Node_Id, Node_Id) {
+    return {};
+}
+
 vector<Node_Id> Graph_V1::get_edges(Node_Id node, size_t pos,
         size_t nbits_degree, size_t nbits_delta) {
     size_t degree;

@@ -2,6 +2,7 @@
 
 from graph import Graph
 from preprocess_v2 import clean_camflow_json, is_version_edge, PreprocessorV2
+import sys
 from util import nbits_for_int, ReaderBitString, WriterBitString
 
 class GraphCompressorV2:
@@ -273,16 +274,25 @@ class CompressedGraph:
 
 
 def main():
-    with open("example.json") as f:
-        json_obj = " ".join([line.strip() for line in f])
-        json_obj = clean_camflow_json(json_obj.split("SPLIT"))
-    pp = PreprocessorV2(json_obj)
-    gc = GraphCompressorV2(pp)
-    gc.compress()
-    g = gc.decompress()
-    for i in range(len(g)):
-        print(i, g.get_outgoing_edges(i), g.get_incoming_edges(i))
-    gc.write_to_file("trial")
+    if len(sys.argv) > 1:
+        json_objs = []
+        for _file in sys.argv[1:]:
+            with open(_file) as f:
+                json_objs.append((_file, clean_camflow_json(f)))
+    else:
+        with open("example.json") as f:
+            json_obj = " ".join([line.strip() for line in f])
+            json_obj = clean_camflow_json(json_obj.split("SPLIT"))
+            json_objs = [("example.json", json_obj)]
+    for (_file, json_obj) in json_objs:
+        pp = PreprocessorV2(json_obj)
+        gc = GraphCompressorV2(pp)
+        gc.compress()
+        g = gc.decompress()
+        for i in range(len(g)):
+            print(i, g.get_outgoing_edges(i), g.get_incoming_edges(i))
+        basename = _file.split("/")[-1].rsplit(".", 1)[0]
+        gc.write_to_file(basename)
 
 if __name__ == "__main__":
     main()

@@ -63,7 +63,9 @@ size_t Graph_V2::get_node_count() {
     return group_index[group_index_length - 1];
 }
 
-// XXX This should use binary search.
+/*
+ * Old version that uses linear search.
+ *
 Group_Idx Graph_V2::get_group_index(Node_Id node) {
     size_t i;
     for (i = group_index_length - 2; i > 0; --i) {
@@ -72,6 +74,31 @@ Group_Idx Graph_V2::get_group_index(Node_Id node) {
         }
     }
     return (Group_Idx) i;
+}
+*/
+
+// XXX Assumes that 0 is in the array.
+size_t bin_search(Node_Id a[], size_t length, Node_Id x) {
+    size_t lo = 0;
+    size_t hi = length - 1;
+    while (lo <= hi) {
+        size_t mid = lo + ((hi - lo) >> 1);
+        Node_Id y = a[mid];
+        if (x > y) {
+            lo = mid + 1;
+        } 
+        else if (x < y) {
+            hi = mid - 1;
+        } else {
+            return mid;
+        }
+    }
+    assert(a[hi] < x && a[hi + 1] > x);
+    return hi;
+}
+
+Group_Idx Graph_V2::get_group_index(Node_Id node) {
+    return (Group_Idx) bin_search(group_index, group_index_length - 1, node);
 }
 
 size_t Graph_V2::get_group_size(Group_Idx idx) {
@@ -171,4 +198,8 @@ vector<Node_Id> Graph_V2::get_edges(Node_Id node, bool is_fwd,
     }
 
     return edges;
+}
+
+map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id, Node_Id) {
+    return {};
 }

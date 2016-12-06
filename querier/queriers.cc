@@ -7,17 +7,6 @@ DummyQuerier::DummyQuerier(string& auditfile) {
     metadata_ = json_graph; 
     graph_ = json_graph;
 }
-vector<string> DummyQuerier::friends_of(string& file_id, string& exec_id) {
-    Node_Id file_node = metadata_->get_node_id(file_id);
-    Node_Id exec_node = metadata_->get_node_id(exec_id);
-    auto node_ids = graph_->friends_of(file_node, exec_node);
-
-    vector<string> ids;
-    for (auto n : node_ids) {
-        ids.push_back(metadata_->get_identifier(n));
-    }
-    return ids;
-}
 
 CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
     metadata_ = new CompressedMetadata(metafile);
@@ -25,14 +14,21 @@ CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
     read_file(graphfile, buffer);
     graph_ = new Graph_V1(buffer);
 }
-vector<string> CompressedQuerier::friends_of(string& file_id, string& exec_id) {
-    //Node_Id node = metadata_->get_node_id(identifier);
-    // TODO
-    (void)file_id;
-    (void)exec_id;
-    return {};
-}
 
+map<string, vector<string>> Querier::friends_of(string& file_id, string& task_id) {
+    Node_Id file_node = metadata_->get_node_id(file_id);
+    Node_Id task_node = metadata_->get_node_id(task_id);
+    auto relation2nodeids = graph_->friends_of(file_node, task_node);
+
+
+    map<string, vector<string>> relation2ids;
+    for (auto pair : relation2nodeids) {
+        for (auto n : pair.second) {
+            relation2ids[pair.first].push_back(metadata_->get_identifier(n));
+        }
+    }
+    return relation2ids;
+}
 map<string, string> Querier::get_metadata(string& identifier) {
     return metadata_->get_metadata(identifier);
 }

@@ -62,41 +62,39 @@ size_t JsonGraph::get_node_count() {
         return graph_.size();
 }
 
-vector<Node_Id> JsonGraph::friends_of(Node_Id pathname, Node_Id executable) {
-    set<Node_Id> friend_files = {};
+map<string, vector<Node_Id>> JsonGraph::friends_of(Node_Id pathname, Node_Id task) {
+    map<string, vector<Node_Id>> friend_files;
 
     File_Id file_id = pathname2file[pathname];
-    File_Id exec_file_id = pathname2file[executable];
-    set<Task_Id> exec_tasks = file2tasks[exec_file_id]["exec"];
-    if (!exec_tasks.size()) {
-        return {};
-    }
+    auto task_md = get_metadata(nodeid2id[task]);
+    Task_Id task_id = stoi(task_md["cf:id"]);
+    
     // get the tasks related to this file id
     map<string, set<Task_Id>> relation_tasks = file2tasks[file_id];
     for (auto pair : relation_tasks) {
         string relation = pair.first;
         set<Task_Id> task_ids = pair.second;
-        for (auto task : task_ids) {
-            // this task isn't associated with this executable
-            if (!exec_tasks.count(task)) {
-                continue;
-            }
-            // get all other files related to the task in the same way as this file id
-            for (auto friend_file_id : task2files[task][relation]) {
-                // we want to record the pathnames (not the file ids)
-                friend_files.insert(file2pathname[friend_file_id]);
-            }
+        if (!task_ids.count(task_id)) {
+            continue;
+        }
+        // this file is related to the task!
+        // get all other files related to the task in the same way as this file id
+        for (auto friend_file_id : task2files[task_id][relation]) {
+            // we want to record the pathnames (not the file ids)
+            friend_files[relation].push_back(file2pathname[friend_file_id]);
         }
     }
     /*
-    cout << pathname2file[pathname] << ", " << pathname2file[executable] << ": ";
+    cout << pathname2file[pathname] << ", " << task_id << endl; 
     for (auto f: friend_files) {
-        cout << pathname2file[f] << ", ";
+        cout << f.first << ": ";
+        for (auto file : f.second) {
+            cout << file << ", ";
+        }
     }
     cout << endl;
     */
-    vector<Node_Id> v( friend_files.begin(), friend_files.end() );
-    return v;
+    return friend_files;
 }
 
 void JsonGraph::construct_graph() {

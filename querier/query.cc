@@ -86,15 +86,17 @@ int main(int argc, char *argv[]) {
 
     // friends 
     if (query == 5) {
-        vector<string> pathname_ids;
+        vector<string> pathname_ids, task_ids;
         for (auto id : ids) {
             auto md = q.get_metadata(id);
             if (md["cf:type"] == "file_name") {
                 pathname_ids.push_back(id);
+            } else if (md["cf:type"] == "task") {
+                task_ids.push_back(id);
             }
         }
         for (auto p1 : pathname_ids){
-            for (auto p2 : pathname_ids) {
+            for (auto p2 : task_ids) {
 #if COMPRESSED
                 // TODO
                 times.push_back(measure<>::execution(q, &CompressedQuerier::friends_of, p1, p2));

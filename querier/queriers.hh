@@ -24,7 +24,7 @@ public:
     vector<string> get_all_descendants(string& identifier);
     vector<string> get_direct_descendants(string& identifier);
     vector<vector<string>> all_paths(string& sourceid, string& sinkid);
-    virtual vector<string> friends_of(string&, string&) = 0;
+    map<string, vector<string>> friends_of(string&, string&);
     vector<string> get_node_ids();
     
 protected:
@@ -35,13 +35,11 @@ protected:
 class DummyQuerier : public Querier {
 public:
     DummyQuerier(string& auditfile);
-    vector<string> friends_of(string&, string&) override;
 };
 
 class CompressedQuerier: public Querier {
 public:
     CompressedQuerier(string& metafile, string& graphfile);
-    vector<string> friends_of(string&, string&) override;
 };
 
 #endif /* QUERY_H */

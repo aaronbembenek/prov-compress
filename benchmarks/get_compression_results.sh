@@ -4,6 +4,7 @@ idfile=identifiers.txt
 commonstrtxtfile=common_strs.txt
 commonstrbinfile=common_strs.bin
 graphfile=graph.cpg
+
 rm $outfile
 touch $outfile
 

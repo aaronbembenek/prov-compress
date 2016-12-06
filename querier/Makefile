@@ -6,7 +6,11 @@ CXXFLAGS = -std=gnu++0x -g -DCOMPRESSED
 else
 CXXFLAGS = -std=gnu++0x -g
 endif
+ifeq ($(BESAFE), 1)
 OPTFLAGS = -W -Wall -O3 -DBESAFE
+else
+OPTFLAGS = -W -Wall -O3
+endif
 OBJS = helpers.o metadata_compressed.o clp.o jsoncpp.o graph.o graph_v1.o json_graph.o queriers.o 
 DEPS = $(OBJS)
 

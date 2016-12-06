@@ -67,7 +67,7 @@ map<string, vector<Node_Id>> JsonGraph::friends_of(Node_Id pathname, Node_Id tas
 
     File_Id file_id = pathname2file[pathname];
     auto task_md = get_metadata(nodeid2id[task]);
-    Task_Id task_id = stoi(task_md["cf:id"]);
+    Task_Id task_id = stol(task_md["cf:id"]);
     
     // get the tasks related to this file id
     map<string, set<Task_Id>> relation_tasks = file2tasks[file_id];
@@ -153,7 +153,7 @@ void JsonGraph::construct_graph() {
         // map from pathname to file id. this should be a one-to-one mapping
         if (head_md["cf:type"] == "file_name") {
             auto path_id = id2nodeid[head];
-            auto tail_id = stoi(tail_md["cf:id"]);
+            auto tail_id = stol(tail_md["cf:id"]);
             assert(!pathname2file.count(path_id)
                     || (pathname2file.count(path_id) 
                         && pathname2file[path_id] == tail_id));
@@ -163,15 +163,15 @@ void JsonGraph::construct_graph() {
         // map from file id to sets of tasks (grouped by relation type)
         // we account for dependencies that can go either direction
         else if (head_md["cf:type"] == "file" && tail_md["cf:type"] == "task") {
-            auto file_id = stoi(head_md["cf:id"]);
-            auto task_id = stoi(tail_md["cf:id"]);
+            auto file_id = stol(head_md["cf:id"]);
+            auto task_id = stol(tail_md["cf:id"]);
             auto relation_type = node_md["cf:type"];
             file2tasks[file_id][relation_type].insert(task_id);
             task2files[task_id][relation_type].insert(file_id);
         }
         else if (tail_md["cf:type"] == "file" && head_md["cf:type"] == "task") {
-            auto file_id = stoi(tail_md["cf:id"]);
-            auto task_id = stoi(head_md["cf:id"]);
+            auto file_id = stol(tail_md["cf:id"]);
+            auto task_id = stol(head_md["cf:id"]);
             auto relation_type = node_md["cf:type"];
             file2tasks[file_id][relation_type].insert(task_id);
             task2files[task_id][relation_type].insert(file_id);

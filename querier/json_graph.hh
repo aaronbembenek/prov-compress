@@ -6,7 +6,7 @@
 
 class JsonGraph: public Metadata, public Graph {
     static vector<string> typs;
-    typedef int Camflow_Id;
+    typedef long long Camflow_Id;
     typedef Node_Id Path_Id;
     typedef Camflow_Id Task_Id;
     typedef Camflow_Id File_Id;

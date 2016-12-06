@@ -31,6 +31,8 @@ class Plotter():
                     size_dict["xzratio"] = sizes[7]
                     size_dict["commonstr"] = sizes[8]
                     data[curfile]["sizes"] = size_dict
+
+        '''
         with open(COMPRESSION_PERF_FILE, 'r') as f:
             curquery = 0
             for line in f.readlines():
@@ -59,10 +61,20 @@ class Plotter():
                     data[curfile]["dqueries"][curquery]["vm"] = vm
                 else:
                     data[curfile]["dqueries"][curquery]["times"] = [int(i.strip(' ')) for i in line.strip('\n').split(',')[:-1]]
+        '''
         self.data = data 
 
     def construct_graph_data(self):
-        self.queries = [0,1,2,3,4,5]
+        self.queries = [0,1,2,3,4,5,6]
+        self.query_to_label = {
+            0: "get_metadata",
+            1: "all_ancestors",
+            2: "direct_ancestors",
+            3: "all_descendants",
+            4: "direct_descendants",
+            5: "friends",
+            6: "all_paths",
+        }
         self.x_labels = sorted(self.data.keys(), key=lambda v: int(self.data[v]["sizes"]["original"]))
         self.xz = []
         self.metadata = []
@@ -86,11 +98,13 @@ class Plotter():
                     /float(self.data[f]["sizes"]["original"]))
             self.sizes.append(float(self.data[f]["sizes"]["original"]))
             self.times.append(float(self.data[f]["time"]))
+            '''
             for q in self.queries:
                 self.dummy_qs[f].setdefault(q, []).append(list(map(float,(self.data[f]['dqueries'][q]["times"][:-1]))))
                 self.compressed_qs[f].setdefault(q, []).append(list(map(float,self.data[f]['cqueries'][q]["times"][:-1])))
                 self.dummy_vm[q].append(float(self.data[f]['dqueries'][q]['vm']))
                 self.compressed_vm[q].append(float(self.data[f]['cqueries'][q]['vm']))
+            '''
 
     def proportions_graph(self):
         ''' 
@@ -152,8 +166,8 @@ class Plotter():
        
             fig.text(0.5, 0.04, 'Provenance Data Files (ordered by increasing size)', ha='center')
             fig.text(0.04, 0.5, 'Time to perform 100 Queries', va='center', rotation='vertical')
-            fig.suptitle('Performance of Query %d' % q)
-            plt.savefig("results/perf_%d.png" % q)
+            fig.suptitle('Performance of Query %s' % self.query_to_label[q])
+            plt.savefig("results/perf_%s.png" % self.query_to_label[q])
             plt.show()
             plt.close()
 
@@ -178,9 +192,9 @@ class Plotter():
 def main():
     p = Plotter()
     p.construct_graph_data()
-    #p.proportions_graph()
-    #p.compression_times_graph()
-    p.query_perf_graphs()
+    p.proportions_graph()
+    p.compression_times_graph()
+    #p.query_perf_graphs()
     #p.query_mem_graphs()
 
 if __name__ == "__main__":

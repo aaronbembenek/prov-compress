@@ -78,8 +78,9 @@ class PreprocessorV2:
             assert typ == self.metadata[id_].typ
             for d in data.keys():
                 if self.metadata[id_].data[d] != data[d]:
-                    warn("Different Metadata!")
-                    warn(id_, d, self.metadata[id_].data[d], data[d])
+                    #warn("Different Metadata!")
+                    #warn(id_, d, self.metadata[id_].data[d], data[d])
+                    pass
 
     def _process_line(self, line, graph, missing):
         for (typ, entries) in line.items():
@@ -108,7 +109,8 @@ class PreprocessorV2:
                                     in graph.get_outgoing_edges(tail)]:
                         graph.add_edge(tail, head, id_)
                     else:
-                        warn("Multiple edges from", tail, "to", head)
+                        pass
+                        #warn("Multiple edges from", tail, "to", head)
                 else:
                     # This is just so that we have a node in the graph
                     # for every entity/activity.

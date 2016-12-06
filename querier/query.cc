@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
                 task_ids.push_back(id);
             }
         }
-        for (auto p1 : pathname_ids){
+        for (auto p1 : pathname_ids) {
             for (auto p2 : task_ids) {
 #if COMPRESSED
                 // TODO

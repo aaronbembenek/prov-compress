@@ -27,6 +27,7 @@ CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
 }
 vector<string> CompressedQuerier::friends_of(string& file_id, string& exec_id) {
     //Node_Id node = metadata_->get_node_id(identifier);
+    // TODO
     (void)file_id;
     (void)exec_id;
     return {};

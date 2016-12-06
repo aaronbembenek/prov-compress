@@ -8,7 +8,6 @@ JsonGraph::JsonGraph(string& infile) {
     Json::Value json_typ;
     size_t pos;
     size_t ctr = 0;
-    vector<string> relation_ids;
 
     ifstream input(infile);
     for (string line; getline(input, line);) {
@@ -64,19 +63,19 @@ size_t JsonGraph::get_node_count() {
 }
 
 vector<Node_Id> JsonGraph::friends_of(Node_Id pathname, Node_Id executable) {
-    vector<Node_Id> friend_files = {};
+    set<Node_Id> friend_files = {};
 
-    auto file_id = pathname2file[pathname];
-    auto exec_file_id = pathname2file[executable];
-    auto exec_tasks = file2tasks[exec_file_id]["exec"];
+    File_Id file_id = pathname2file[pathname];
+    File_Id exec_file_id = pathname2file[executable];
+    set<Task_Id> exec_tasks = file2tasks[exec_file_id]["exec"];
     if (!exec_tasks.size()) {
         return {};
     }
     // get the tasks related to this file id
-    auto relation_tasks = file2tasks[file_id];
+    map<string, set<Task_Id>> relation_tasks = file2tasks[file_id];
     for (auto pair : relation_tasks) {
-        auto relation = pair.first;
-        auto task_ids = pair.second;
+        string relation = pair.first;
+        set<Task_Id> task_ids = pair.second;
         for (auto task : task_ids) {
             // this task isn't associated with this executable
             if (!exec_tasks.count(task)) {
@@ -85,11 +84,19 @@ vector<Node_Id> JsonGraph::friends_of(Node_Id pathname, Node_Id executable) {
             // get all other files related to the task in the same way as this file id
             for (auto friend_file_id : task2files[task][relation]) {
                 // we want to record the pathnames (not the file ids)
-                friend_files.push_back(file2pathname[friend_file_id]);
+                friend_files.insert(file2pathname[friend_file_id]);
             }
         }
     }
-    return friend_files;
+    /*
+    cout << pathname2file[pathname] << ", " << pathname2file[executable] << ": ";
+    for (auto f: friend_files) {
+        cout << pathname2file[f] << ", ";
+    }
+    cout << endl;
+    */
+    vector<Node_Id> v( friend_files.begin(), friend_files.end() );
+    return v;
 }
 
 void JsonGraph::construct_graph() {
@@ -143,15 +150,17 @@ void JsonGraph::construct_graph() {
         id2nodeid[id] = ctr++;
 
         auto head_md = get_metadata(head);
-        auto tail_md = get_metadata(head);
+        auto tail_md = get_metadata(tail);
         assert(tail_md["cf:type"] != "file_name");
         // map from pathname to file id. this should be a one-to-one mapping
         if (head_md["cf:type"] == "file_name") {
-            assert(!pathname2file.count(id2nodeid[head])
-                    || (pathname2file.count(id2nodeid[head]) 
-                        && pathname2file[id2nodeid[head]] == stoi(tail_md["cf:id"])));
-            pathname2file[id2nodeid[head]] = stoi(tail_md["cf:id"]);
-            file2pathname[stoi(tail_md["cf:id"])] = id2nodeid[head];
+            auto path_id = id2nodeid[head];
+            auto tail_id = stoi(tail_md["cf:id"]);
+            assert(!pathname2file.count(path_id)
+                    || (pathname2file.count(path_id) 
+                        && pathname2file[path_id] == tail_id));
+            pathname2file[path_id] = tail_id; 
+            file2pathname[tail_id] = path_id;
         }
         // map from file id to sets of tasks (grouped by relation type)
         // we account for dependencies that can go either direction
@@ -169,6 +178,22 @@ void JsonGraph::construct_graph() {
             file2tasks[file_id][relation_type].insert(task_id);
             task2files[task_id][relation_type].insert(file_id);
         }
+        /*
+        for (auto pair : file2tasks) {
+            auto file_id = pair.first;
+            cout << file_id << "\t";
+            auto relationids = pair.second;
+            for (auto ri : relationids) {
+                string relation = ri.first;
+                cout << relation << ": ";
+                auto ids = ri.second;
+                for (auto id : ids) {
+                    cout << id << ", ";
+                }
+            }
+            cout << endl;
+        }
+        */
 	}
 }
 

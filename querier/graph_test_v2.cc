@@ -9,5 +9,16 @@ int main() {
     read_file("../compression/trial.cpg2", buffer);
 
     Graph* graph = new Graph_V2(buffer);
-    (void) graph;
+    for (Node_Id node = 0; node < graph->get_node_count(); ++node) {
+        cout << "NODE " << node << endl;
+        cout << "OUTGOING " << endl;
+        for (Node_Id e : graph->get_outgoing_edges(node)) {
+            cout << e << endl;
+        }
+        cout << "INCOMING " << endl;
+        for (Node_Id e : graph->get_incoming_edges(node)) {
+            cout << e << endl;
+        }
+        cout << endl;
+    }
 }

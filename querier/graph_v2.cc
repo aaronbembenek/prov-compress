@@ -1,7 +1,5 @@
 #include "graph_v2.hh"
 
-#include <iostream>
-
 using namespace std;
 
 Graph_V2::Graph_V2(string& compressed) : data(compressed) {
@@ -44,22 +42,6 @@ Graph_V2::Graph_V2(string& compressed) : data(compressed) {
     }
     group_index[group_index_length - 1] = prev_id + prev_size;
     base_pos = ((pos + 7) >> 3) << 3;
-
-    for (Node_Id i = 0; i < get_node_count(); ++i) {
-        Group_Idx idx = get_group_index(i);
-        size_t sz = get_group_size(idx);
-        size_t pos = get_group_pos(idx);
-        cout << i << " " << idx << " " << sz << " " << pos << endl;
-        cout << "FWDEDGES" << endl;
-        for (Node_Id id : get_outgoing_edges_raw(idx)) {
-            cout << id << endl;
-        }
-        cout << "BACKEDGES" << endl;
-        for (Node_Id id : get_incoming_edges_raw(idx)) {
-            cout << id << endl;
-        }
-        cout << endl;
-    }
 }
 
 Graph_V2::~Graph_V2() {
@@ -67,12 +49,14 @@ Graph_V2::~Graph_V2() {
     delete [] idx2pos;
 }
 
-vector<Node_Id> Graph_V2::get_outgoing_edges(Node_Id) {
-    return {};
+vector<Node_Id> Graph_V2::get_outgoing_edges(Node_Id node) {
+    return get_edges(node, true, &Graph_V2::get_outgoing_edges_raw,
+            &Graph_V2::get_incoming_edges_raw);
 }
 
-vector<Node_Id> Graph_V2::get_incoming_edges(Node_Id) {
-    return {};
+vector<Node_Id> Graph_V2::get_incoming_edges(Node_Id node) {
+    return get_edges(node, false, &Graph_V2::get_incoming_edges_raw,
+            &Graph_V2::get_outgoing_edges_raw);
 }
 
 size_t Graph_V2::get_node_count() {
@@ -146,8 +130,45 @@ vector<Node_Id> Graph_V2::get_incoming_edges_raw(Group_Idx idx) {
     return read_edges_raw(idx, pos, back_info[is_collapsed]);
 }
 
-vector<Node_Id> Graph_V2::get_edges(Node_Id, bool,
-        vector<Node_Id> (Graph_V2::*)(Group_Idx),
-        vector<Node_Id> (Graph_V2::*)(Group_Idx)) {
-    return {};
+vector<Node_Id> Graph_V2::get_edges(Node_Id node, bool is_fwd,
+        vector<Node_Id> (Graph_V2::*get_source_edges)(Group_Idx),
+        vector<Node_Id> (Graph_V2::*get_dest_edges)(Group_Idx)) {
+    Group_Idx group_idx = get_group_index(node);
+    size_t sz = get_group_size(group_idx);
+    vector<Node_Id> raw_edges = (this->*get_source_edges)(group_idx);
+    if (sz < 2) {
+        return raw_edges;
+    }
+
+    vector<Node_Id> edges;
+    Node_Id my_lo = get_group_id(group_idx);
+    Node_Id my_hi = my_lo + sz;
+
+    if (is_fwd && node > 0 && node - 1 >= my_lo) {
+        edges.push_back(node - 1);
+    } else if (!is_fwd && node + 1 < my_hi) {
+        edges.push_back(node + 1);
+    }
+
+    size_t my_idx = 0;
+    size_t len = raw_edges.size();
+    while (my_idx < len) {
+        Group_Idx other_grp_idx = get_group_index(raw_edges[my_idx]);
+        vector<Node_Id> other_edges = (this->*get_dest_edges)(other_grp_idx);
+    
+        for (Node_Id n : other_edges) {
+            if (n < my_lo) {
+                continue;
+            }
+            if (n >= my_hi) {
+                break;
+            }
+            if (n == node) {
+                edges.push_back(raw_edges[my_idx]);
+            }
+            ++my_idx;
+        }
+    }
+
+    return edges;
 }

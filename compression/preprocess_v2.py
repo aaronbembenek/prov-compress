@@ -8,10 +8,10 @@ from unionfind import CustomUnionFind
 from util import nbits_for_int, warn
 
 RELATION_TYPS = {
-    "wasGeneratedBy": ("prov:entity", "prov:activity"),
-    "wasInformedBy": ("prov:activity", "prov:entity"),
+    "used": ("prov:entity", "prov:activity"),
+    "wasGeneratedBy": ("prov:activity", "prov:entity"),
     "wasDerivedFrom": ("prov:usedEntity", "prov:generatedEntity"),
-    "used": ("prov:informant", "prov:informed"),
+    "wasInformedBy": ("prov:informant", "prov:informed"),
     "relation": ("prov:sender", "prov:receiver")
 }
 
@@ -93,6 +93,10 @@ class PreprocessorV2:
 
                 # Set up edges in graph.
                 if typ in RELATION_TYPS:
+                    print(typ)
+                    print(RELATION_TYPS[typ][0])
+                    print(RELATION_TYPS[typ][1])
+                    print(data)
                     head = data[RELATION_TYPS[typ][0]]
                     tail = data[RELATION_TYPS[typ][1]]
 

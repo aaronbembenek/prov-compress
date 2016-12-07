@@ -85,12 +85,13 @@ map<string, vector<Node_Id>> JsonGraph::friends_of(Node_Id pathname, Node_Id tas
         }
     }
     /*
-    cout << pathname2file[pathname] << ", " << task_id << endl; 
+    cout << pathname2file[pathname] << ", " << task_id << ": "; 
     for (auto f: friend_files) {
         cout << f.first << ": ";
-        for (auto file : f.second) {
-            cout << file << ", ";
+        for (auto pathname : f.second) {
+            cout << pathname2file[pathname] << " ";
         }
+        cout << " || ";
     }
     cout << endl;
     */

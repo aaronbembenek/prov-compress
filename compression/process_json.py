@@ -145,7 +145,7 @@ def graph_to_dot2(infile):
         dtype = str(data["cf:type"])
         if dtype == "file_name":
             return dtype + ": " + data["cf:pathname"]
-        return dtype + ", " + str(data["cf:id"]) + " " + node
+        return dtype + ", " + str(data["cf:id"])
     s = ["digraph prov {"]
     for v, edges in graph.items():
         s.extend(['\t"%s" -> "%s" [label="%s"];' % (

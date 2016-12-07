@@ -1,6 +1,6 @@
 cfile=compression_perf.data
 dfile=dummy_perf.data
-declare -a queries=( 0 1 2 3 4 5 6 )
+declare -a queries=( 0 1 2 3 4 5 )
 
 rm results/$cfile
 rm results/$dfile

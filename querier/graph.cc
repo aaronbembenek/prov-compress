@@ -50,7 +50,9 @@ vector<vector<Node_Id>> Graph::get_all_paths(Node_Id source, Node_Id sink) {
     vector<Entry> stack {{source, memo[source].begin(), {}}};
     vector<v> acc;
     bool forward = true;
-    while (!stack.empty()) {
+    int ctr = 0;
+    while (!stack.empty() && ctr < 100000) {
+        ctr++;
         Entry& top = stack.back();
 
         if (!forward) {

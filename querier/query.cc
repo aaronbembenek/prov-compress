@@ -95,13 +95,13 @@ int main(int argc, char *argv[]) {
                 task_ids.push_back(id);
             }
         }
-        for (auto p1 : pathname_ids) {
-            for (auto p2 : task_ids) {
+        for (unsigned i = 0; i < pathname_ids.size(); i++) {
+            for (unsigned j = 0; j < task_ids.size(); j+=100) {
 #if COMPRESSED
                 // TODO
-                times.push_back(measure<>::execution(q, &CompressedQuerier::friends_of, p1, p2));
+                times.push_back(measure<>::execution(q, &CompressedQuerier::friends_of, pathname_ids[i], task_ids[j]));
 #else
-                times.push_back(measure<>::execution(q, &DummyQuerier::friends_of, p1, p2));
+                times.push_back(measure<>::execution(q, &DummyQuerier::friends_of, pathname_ids[i], task_ids[j]));
 #endif
                 vm_usage = max(vm_usage, virtualmem_usage());
             }
@@ -109,12 +109,10 @@ int main(int argc, char *argv[]) {
     }
     // all_paths
     else if (query == 6) {
-        for (unsigned i = 0; i < ids.size(); i+=50) {
-            for (unsigned j = 1; j < ids.size(); j+=100) {
+        for (unsigned i = 0; i < ids.size(); i+=200) {
+            for (unsigned j = 10; j < ids.size(); j+=500) {
                 auto start = std::chrono::steady_clock::now();
-                for (auto r = 0; r < NUM_REPS; ++r) {
-                    q.all_paths(ids[i], ids[j]);
-                }
+                q.all_paths(ids[i], ids[j]);
                 auto duration = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
                 times.push_back(duration.count());
                 vm_usage = max(vm_usage, virtualmem_usage());

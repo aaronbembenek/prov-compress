@@ -114,23 +114,22 @@ class Plotter():
         x1 = range(len(self.x_labels)) 
         x2 = [x+width for x in x1]
        
-        fig = plt.figure()
+        fig = plt.figure(figsize=(15,10))
         ax = fig.add_subplot(111)
         rects1 = ax.bar(x1, self.xz, width, color='black')
         rects2 = ax.bar(x2, self.metadata, width, color='red')
         rects3 = ax.bar(x2, self.graph, width, color='green', bottom=self.metadata)
 
         ax.set_xlim(-width,len(x1)+width)
-        ax.set_ylim(0,0.2)
-        ax.set_xlabel('Provenence Data Files (ordered by increasing size)')
-        ax.set_ylabel('Proportional Size of Compressed Data')
-        ax.set_title('Proportional Size of Compressed Provenance Graph (Proportionate to Original)')
+        ax.set_xlabel('Provenence Data Files (ordered by increasing size)', fontsize=14)
+        ax.set_ylabel('Proportion of Original Data', fontsize=14)
+        ax.set_title('Compression Size Results: Proportion of Original Data', fontsize=18)
         xTickMarks = self.x_labels 
         ax.set_xticks(x1)
         #xtickNames = ax.set_xticklabels(xTickMarks)
         #plt.setp(xtickNames, rotation=45, fontsize=10)
         
-        ax.legend( (rects1[0], rects2[0], rects3[0]), ('XZ -9', 'Compressed Metadata', 'Compressed Graph') )
+        ax.legend( (rects1[0], rects2[0], rects3[0]), ('XZ -9', 'Compressed Metadata', 'Compressed Graph'), loc='best' )
         plt.savefig("results/sizes.png")
         plt.show()
         plt.close()
@@ -139,13 +138,13 @@ class Plotter():
         ''' 
         plot of initial size vs. compression time 
         '''
-        fig = plt.figure()
+        fig = plt.figure(figsize=(15,10))
         ax = fig.add_subplot(111)
 
         ax.set_xlim(min(self.sizes)-100,max(self.sizes)+100)
-        ax.set_xlabel('Size of Provenance Data')
-        ax.set_ylabel('Time to Compress')
-        ax.set_title('Time to Compress vs. Provenance Data Size')
+        ax.set_xlabel('Size of Provenance Data (bytes)', fontsize=14)
+        ax.set_ylabel('Time to Compress (sec)', fontsize=14)
+        ax.set_title('Time to Compress vs. Provenance Data Size', fontsize=18)
         ax.plot(self.sizes, self.times)
         plt.savefig("results/times.png")
         plt.show()
@@ -165,7 +164,7 @@ class Plotter():
                 ax.margins(0.05) # Optional
        
             fig.text(0.5, 0.04, 'Provenance Data Files (ordered by increasing size)', ha='center')
-            fig.text(0.04, 0.5, 'Time to perform 100 Queries', va='center', rotation='vertical')
+            fig.text(0.04, 0.5, 'Time to perform 50 Queries (ns)', va='center', rotation='vertical')
             fig.suptitle('Performance of Query %s' % self.query_to_label[q])
             plt.savefig("results/perf_%s.png" % self.query_to_label[q])
             plt.show()

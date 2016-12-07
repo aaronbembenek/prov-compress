@@ -362,6 +362,7 @@ map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task
         vector<Node_Id> out = get_outgoing_edges(n);
         Node_Id path;
         bool found = false;
+        // Assume that the single out edge represents a "named" relation.
         if (out.size() == 1) {
             path = out[0];
             found = true;
@@ -376,12 +377,14 @@ map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task
                 }
             }
         }
-        assert(found);
-        for (string rel : p.second) {
-            if (!output.count(rel)) {
-                output[rel] = {};
+        // XXX Some file nodes don't depend on a pathname node -- CamFlow bug?
+        if (found) {
+            for (string rel : p.second) {
+                if (!output.count(rel)) {
+                    output[rel] = {};
+                }
+                output[rel].push_back(path);
             }
-            output[rel].push_back(path);
         }
     }
 

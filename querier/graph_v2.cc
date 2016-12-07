@@ -361,10 +361,11 @@ map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task
         Node_Id n = get_group_id(p.first);
         vector<Node_Id> out = get_outgoing_edges(n);
         Node_Id path;
+        bool found = false;
         if (out.size() == 1) {
             path = out[0];
+            found = true;
         } else {
-            bool found = false;
             for (Node_Id dest : out) {
                 Node_Id edge = construct_edge_id(n, dest, get_node_count());
                 string edge_id = metadata->get_identifier(edge);
@@ -374,8 +375,8 @@ map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task
                     break;
                 }
             }
-            assert(found);
         }
+        assert(found);
         for (string rel : p.second) {
             if (!output.count(rel)) {
                 output[rel] = {};

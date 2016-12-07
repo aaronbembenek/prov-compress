@@ -121,7 +121,9 @@ int main(int argc, char *argv[]) {
     }
     // all other queries
     else {
+        cerr << "RUNNING QUERY " << query << endl;
         for (unsigned i = 0; i < ids.size(); i+= 100) {
+            cerr << ids[i] << " ";
             switch(query) {
             case (0):
                 times.push_back(measure<>::execution(q, &Querier::get_metadata, ids[i]));

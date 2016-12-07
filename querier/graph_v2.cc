@@ -1,7 +1,5 @@
 #include "graph_v2.hh"
 
-// XXX
-#include <iostream>
 #include <tuple>
 
 using namespace std;
@@ -362,12 +360,27 @@ map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task
     for (auto p : friends) {
         Node_Id n = get_group_id(p.first);
         vector<Node_Id> out = get_outgoing_edges(n);
-        assert(out.size() == 1);
+        Node_Id path;
+        if (out.size() == 1) {
+            path = out[0];
+        } else {
+            bool found = false;
+            for (Node_Id dest : out) {
+                Node_Id edge = construct_edge_id(n, dest, get_node_count());
+                string edge_id = metadata->get_identifier(edge);
+                if (metadata->get_metadata(edge_id).at("cf:type") == "named") {
+                    path = dest;
+                    found = true;
+                    break;
+                }
+            }
+            assert(found);
+        }
         for (string rel : p.second) {
             if (!output.count(rel)) {
                 output[rel] = {};
             }
-            output[rel].push_back(out[0]);
+            output[rel].push_back(path);
         }
     }
 

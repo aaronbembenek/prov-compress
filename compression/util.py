@@ -2,15 +2,6 @@
 
 import math
 import sys
-import process_json as pj
-
-def transpose_graph(g):
-    t = {}
-    for node, edges in g.items():
-        t.setdefault(node, [])
-        for edge in edges:
-            t.setdefault(edge.dest, []).append(pj.Edge(node, edge.label))
-    return t
 
 def nbits_for_int(i):
     assert i >= 0

@@ -1,4 +1,4 @@
-#include "graph_v1.hh"
+#include "graph_v2.hh"
 #include "json_graph.hh"
 #include "queriers.hh"
 
@@ -12,7 +12,7 @@ CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
     metadata_ = new CompressedMetadata(metafile);
     string buffer;
     read_file(graphfile, buffer);
-    graph_ = new Graph_V1(buffer);
+    graph_ = new Graph_V2(buffer);
 }
 
 map<string, vector<string>> Querier::friends_of(string& file_id, string& task_id) {

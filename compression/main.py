@@ -4,6 +4,7 @@ from compress_metadata import CompressionEncoder
 from preprocess_v2 import clean_camflow_json, PreprocessorV2
 import sys
 import time
+from process_json import graph_to_dot4
 
 def main():
     if len(sys.argv) == 1:
@@ -36,8 +37,9 @@ def main():
     e.write_to_file(outfile)
     # Continue to use old extension, to make life easier (maybe).
     c.write_to_file(graph_out, ext="cpg")
+    print(graph_to_dot4(pp))
 
-    print("Compression Time: ", end-start)
+    #print("Compression Time: ", end-start)
 
 if __name__ == "__main__":
     main()

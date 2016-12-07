@@ -152,6 +152,5 @@ int main(int argc, char *argv[]) {
         cout << t <<  ", ";
     }
     cout << endl<< "VM:" << vm_usage << endl;
-
     return 0;
 }

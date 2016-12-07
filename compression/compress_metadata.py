@@ -151,6 +151,7 @@ class CompressionEncoder(Encoder):
             - creates and adds relation identifiers' IDS to dict
         '''
         id_dict = {}
+        self.default_node_data["cf:type"] = "task"
       
         for identifier, metadata in self.metadata.items():
             relative_encoding = False
@@ -221,12 +222,18 @@ class CompressionEncoder(Encoder):
                 # delta encode with reference to the default
                 elif val == default_data[key]:
                     metadata.data[key] = 'same'
+                '''
+                elif val == default_data[key] and not relative_encoding:
+                    metadata.data[key] = 'same %s' % default_data[key]
+                elif val == default_data[key]:
+                    metadata.data[key] = 'same %s' % cf_id
+                '''
             
             # add a marker in the metadata that this is encoded relative 
             # to another node with the same cf_id
-            if metadata.typ not in RELATION_TYPS and cf_id in id_dict and cf_id != None:
+            if relative_encoding: 
                 metadata.data[Encoder.RELATIVE_NODE] = self.iti[id_dict[cf_id][0]]
- 
+
     def encode_metadata_entry(self, metadata):
         entry = ''
         equal_keys = []
@@ -330,4 +337,3 @@ class CompressionEncoder(Encoder):
     def compress_metadata(self):
         self.prepare_metadata_json()
         self.encoded_json_bits = self.encode_json()
-

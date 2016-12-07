@@ -238,7 +238,6 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     if (my_nodeid == id2nodeid.end()) {
         return metadata;
     }
-
     cur_pos = nodeid2dataindex[my_nodeid->second];
 
     // get type
@@ -365,7 +364,7 @@ map<string, string> CompressedMetadata::get_metadata(string& identifier) {
     }
     for (auto kv: metadata) {
         if (kv.second == "=") {
-            metadata[kv.first] = default_node_data[kv.first];
+            metadata[kv.first] = relative_metadata[kv.first];
         }
     }
     return metadata;

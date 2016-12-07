@@ -11,7 +11,7 @@ OPTFLAGS = -W -Wall -O3 -DBESAFE
 else
 OPTFLAGS = -W -Wall -O3
 endif
-OBJS = helpers.o metadata_compressed.o clp.o jsoncpp.o graph.o graph_v2.o json_graph.o queriers.o 
+OBJS = helpers.o metadata_compressed.o clp.o jsoncpp.o graph.o graph_v1.o json_graph.o queriers.o graph_v2.o
 DEPS = $(OBJS)
 
 %.o: %.c
@@ -25,6 +25,9 @@ query: query.o $(DEPS)
 
 graph: graph_test_v2.o graph.o graph_v1.o helpers.o json_graph.o\
 	metadata_compressed.o jsoncpp.o graph_v2.o
+	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^
+
+friends: friends.o $(DEPS)
 	$(CXX) $(CXXFLAGS) $(OPTFLAGS) -o $@ $^
 
 clean:

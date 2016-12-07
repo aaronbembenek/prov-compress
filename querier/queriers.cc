@@ -18,7 +18,7 @@ CompressedQuerier::CompressedQuerier(string& metafile, string& graphfile) {
 map<string, vector<string>> Querier::friends_of(string& file_id, string& task_id) {
     Node_Id file_node = metadata_->get_node_id(file_id);
     Node_Id task_node = metadata_->get_node_id(task_id);
-    auto relation2nodeids = graph_->friends_of(file_node, task_node);
+    auto relation2nodeids = graph_->friends_of(file_node, task_node, metadata_);
 
 
     map<string, vector<string>> relation2ids;

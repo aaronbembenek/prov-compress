@@ -1,5 +1,9 @@
 #include "graph_v2.hh"
 
+// XXX
+#include <iostream>
+#include <tuple>
+
 using namespace std;
 
 Graph_V2::Graph_V2(string& compressed) : data(compressed) {
@@ -200,6 +204,239 @@ vector<Node_Id> Graph_V2::get_edges(Node_Id node, bool is_fwd,
     return edges;
 }
 
-map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id, Node_Id) {
-    return {};
+Node_Id construct_edge_id(Node_Id src, Node_Id dest, int node_count) {
+    size_t bits = nbits_for_int(node_count);
+    return (dest << bits) + src + node_count;
+}
+
+ssize_t sorted_range_search(vector<Node_Id> v, Node_Id lo, Node_Id hi) {
+    size_t sz = v.size();
+    for (size_t i = 0; i < sz; ++i) {
+        if (v[i] >= hi) {
+            break;
+        }
+        if (v[i] >= lo) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+vector<tuple<Node_Id, Node_Id>> match_edges(vector<Node_Id>::iterator& it,
+        Node_Id my_lo, Node_Id my_hi, vector<Node_Id>& other) {
+    ssize_t pos = sorted_range_search(other, my_lo, my_hi);
+    if (pos < 0) {
+        return {};
+    }
+    vector<tuple<Node_Id, Node_Id>> edges;
+    for (vector<Node_Id>::iterator o = other.begin() + pos;
+            o != other.end(); ++o) {
+        if (*o >= my_hi) {
+            return edges;
+        }
+        edges.push_back(make_tuple(*it, *o));
+        ++it;
+    }
+    return edges;
+}
+
+map<string, vector<Node_Id>> Graph_V2::friends_of(Node_Id pathname, Node_Id task,
+        Metadata* metadata) {
+    /*
+     * From pathname, get file inodes.
+     * Get Group_Idx of task and each file_inode
+     * Assert only one file inode
+     * Find all edges (both forward and back)
+     * Between file inode and graph
+     * -> go from file because fewer edges
+     * find a set of relations
+     *
+     * for all edges going out or in from task,
+     * if relation matches
+     * get group_idx of that side
+     * if that group is a file inode
+     * get path_name and add to output
+     */
+
+    string path = metadata->get_identifier(pathname);
+    cout << metadata->get_metadata(path).at("cf:pathname") << endl;
+    vector<Node_Id> pathname_edges = get_incoming_edges(pathname);
+    assert(pathname_edges.size() == 1); 
+    Group_Idx file_idx = get_group_index(pathname_edges[0]);
+    Node_Id file_lo = get_group_id(file_idx);
+    Node_Id file_hi = file_lo + get_group_size(file_idx);
+    cout << file_lo << " " << file_hi << endl;
+    string file_str = metadata->get_identifier(file_lo);
+    cout << file_str << endl;
+    cout << metadata->get_metadata(file_str).at("cf:type") << endl;
+
+    Group_Idx task_idx = get_group_index(task);
+    Node_Id task_lo = get_group_id(task_idx);
+    Node_Id task_hi = task_lo + get_group_size(task_idx);
+
+    cout << "task_lo " << task_lo << endl;
+    cout << "task_hi " << task_hi << endl;
+
+    vector<Node_Id> task_out = get_outgoing_edges_raw(task_idx);
+    vector<Node_Id> task_in = get_incoming_edges_raw(task_idx);
+    cout << "TASK_IN" << endl;
+    for (Node_Id nid : task_in) {
+        cout << nid << endl;
+        string nid_str = metadata->get_identifier(nid);
+        cout << nid_str << endl;
+        cout << metadata->get_metadata(nid_str).at("cf:type") << endl;
+    }
+    cout << "END_TASK_IN" << endl;
+
+    set<string> relations;
+    vector<Node_Id> file_out = get_outgoing_edges_raw(file_idx);
+    ssize_t pos = sorted_range_search(file_out, task_lo, task_hi);
+    if (pos != -1) {
+        cout << "searching outgoing" << endl;
+        vector<Node_Id>::iterator fout = file_out.begin() + pos;
+        auto edges = match_edges(fout, file_lo, file_hi, task_in);
+        for (tuple<Node_Id, Node_Id> edge : edges) {
+            Node_Id numeric_edge_id = construct_edge_id(get<1>(edge),
+                    get<0>(edge), get_node_count());
+            string edge_string = metadata->get_identifier(numeric_edge_id);
+            string relation = metadata->get_metadata(edge_string).
+                at("cf:type");
+            relations.insert(relation);
+            cout << "RELATION " << relation << endl;
+        }
+    }
+
+    vector<Node_Id> file_in = get_incoming_edges_raw(file_idx);
+    pos = sorted_range_search(file_in, task_lo, task_hi);
+    if (pos != -1) {
+        vector<Node_Id>::iterator fin = file_in.begin() + pos;
+        auto edges = match_edges(fin, file_lo, file_hi, task_out);
+        for (tuple<Node_Id, Node_Id> edge : edges) {
+            Node_Id numeric_edge_id = construct_edge_id(get<0>(edge),
+                    get<1>(edge), get_node_count());
+            string edge_string = metadata->get_identifier(numeric_edge_id);
+            string relation = metadata->get_metadata(edge_string).
+                at("cf:type");
+            relations.insert(relation);
+        }
+    }
+
+    cout << "RELATIONS" << endl;
+    for (auto relation : relations) {
+        cout << relation << endl;
+    }
+    cout << "ENDRELATIONS" << endl;
+
+    map<Group_Idx, set<string>> friends;
+    vector<Node_Id>::iterator tout = task_out.begin();
+    while (tout != task_out.end()) {
+        Node_Id n = *tout;
+        string nid = metadata->get_identifier(n);
+        Group_Idx nidx = get_group_index(n);
+        if (nidx == file_idx || metadata->get_metadata(nid).
+                at("cf:type") != "file") {
+            Node_Id nhi = get_group_id(nidx) + get_group_size(nidx);
+            for (; tout != task_out.end() && *tout < nhi; ++tout) {
+                // skip ahead
+            }
+            continue;
+        }
+
+        vector<Node_Id> other = get_incoming_edges_raw(nidx);
+        auto edges = match_edges(tout, task_lo, task_hi, other);
+        for (tuple<Node_Id, Node_Id> edge : edges) {
+            Node_Id friendly = get<0>(edge);
+            Node_Id numeric_edge_id = construct_edge_id(get<1>(edge),
+                    friendly, get_node_count());
+            string edge_string = metadata->get_identifier(numeric_edge_id);
+            string relation = metadata->get_metadata(edge_string).
+                at("cf:type");
+            cout << "relation " << relation << endl;
+            if (!relations.count(relation)) {
+                cout << "NOPE" << endl;
+                continue;
+            }
+            string friend_id = metadata->get_identifier(friendly);
+            if (metadata->get_metadata(friend_id).at("cf:type") == "file") {
+                Group_Idx friend_idx = get_group_index(friendly);
+                if (!friends.count(friend_idx)) {
+                    friends[friend_idx] = {};
+                }
+                friends[friend_idx].insert(relation);
+            }
+        }
+    }
+
+    for (Node_Id id : task_in) {
+        cout << id << endl;
+        Group_Idx idx = get_group_index(id);
+        cout << idx << endl;
+        string nid = metadata->get_identifier(id);
+        cout << nid << endl;
+        cout << metadata->get_metadata(nid).at("cf:type") << endl;
+    }
+    cout << "my id" << get_group_id(file_idx) << endl; 
+    vector<Node_Id>::iterator tin = task_in.begin();
+    while (tin != task_in.end()) {
+        Node_Id n = *tin;
+        string nid = metadata->get_identifier(n);
+        Group_Idx nidx = get_group_index(n);
+        cout << n << endl;
+        cout << metadata->get_metadata(nid).at("cf:type") << endl;
+        if (nidx == file_idx || metadata->get_metadata(nid).
+                at("cf:type") != "file") {
+            Node_Id nhi = get_group_id(nidx) + get_group_size(nidx);
+            for (; tin != task_in.end() && *tin < nhi; ++tin) {
+                // skip ahead
+            }
+            continue;
+        }
+        cout << "made it!" << endl;
+
+        vector<Node_Id> other = get_outgoing_edges_raw(nidx);
+        auto edges = match_edges(tin, task_lo, task_hi, other);
+        for (tuple<Node_Id, Node_Id> edge : edges) {
+            cout << "found something" << endl;
+            Node_Id friendly = get<1>(edge);
+            Node_Id numeric_edge_id = construct_edge_id(get<0>(edge),
+                    friendly, get_node_count());
+            string edge_string = metadata->get_identifier(numeric_edge_id);
+            string relation = metadata->get_metadata(edge_string).
+                at("cf:type");
+            cout << "relation " << relation << endl;
+            if (!relations.count(relation)) {
+                continue;
+            }
+            string friend_id = metadata->get_identifier(friendly);
+            if (metadata->get_metadata(friend_id).at("cf:type") == "file") {
+                Group_Idx friend_idx = get_group_index(friendly);
+                if (!friends.count(friend_idx)) {
+                    friends[friend_idx] = {};
+                }
+                friends[friend_idx].insert(relation);
+            }
+        }
+    }
+
+    map<string, vector<Node_Id>> output;
+    for (auto p : friends) {
+        Node_Id n = get_group_id(p.first);
+        vector<Node_Id> out = get_outgoing_edges(n);
+        assert(out.size() == 1);
+        for (string rel : p.second) {
+            if (!output.count(rel)) {
+                output[rel] = {};
+            }
+            output[rel].push_back(out[0]);
+        }
+    }
+
+    for (auto p : output) {
+        cout << p.first << endl;
+        for (Node_Id id : p.second) {
+            cout << metadata->get_identifier(id) << endl;
+        }
+    }
+
+    return output;
 }

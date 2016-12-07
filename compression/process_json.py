@@ -9,6 +9,8 @@ import json
 import os
 import sys
 import unionfind
+from preprocess_v2 import *
+from compress_graph_v2 import *
 
 PATH = "../compression"
 
@@ -191,6 +193,28 @@ def graph_to_dot3(infile):
     s.append("}")
     return "\n".join(s)
 
+def graph_to_dot4(pp):
+    graph = pp.get_graph()
+    metadata = pp.get_metadata()
+    def node2str(node):
+        data = metadata[node].data
+        if "cf:type" not in data:
+            return node
+        dtype = str(data["cf:type"])
+        if dtype == "file_name":
+            return dtype + ": " + data["cf:pathname"] + "," + str(pp.id2num(node))
+        return dtype + ", " + str(data["cf:id"]) + " " + node + "," + str(pp.id2num(node))
+    s = ["digraph prov {"]
+    for v in graph.get_vertices():
+        edges = graph.get_outgoing_edges(v)
+        s.extend(['\t"%s" -> "%s" [label="%s"];' % (
+            node2str(v), 
+            node2str(edge.dest),
+            metadata[edge.label].typ + ", " +
+            metadata[edge.label].data['cf:type'])
+            for edge in edges])
+    s.append("}")
+    return "\n".join(s)
 
 def main():
     print(graph_to_dot2(sys.argv[1]))

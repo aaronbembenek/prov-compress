@@ -217,7 +217,7 @@ def graph_to_dot4(pp):
     return "\n".join(s)
 
 def main():
-    print(graph_to_dot4(sys.argv[1]))
+    print(graph_to_dot2(sys.argv[1]))
 
 if __name__ == "__main__":
     main()

@@ -70,7 +70,8 @@ class PreprocessorV2:
         # entries in the metadata.
         for i, id_ in enumerate(missing):
             assert id_ not in self.metadata
-            self.metadata[id_] = MetadataEntry("unknown", {})
+            self.metadata[id_] = MetadataEntry("unknown",
+                                               {'cf:id':-i, 'cf:type':None})
             graph.add_vertex(id_)
         return graph
 

@@ -38,7 +38,7 @@ def main():
     e.write_to_file(outfile)
     # Continue to use old extension, to make life easier (maybe).
     c.write_to_file(graph_out, ext="cpg")
-    print(graph_to_dot4(pp))
+    #print(graph_to_dot4(pp))
 
     #print("Compression Time: ", end-start)
 

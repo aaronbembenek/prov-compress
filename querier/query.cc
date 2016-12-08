@@ -96,9 +96,8 @@ int main(int argc, char *argv[]) {
             }
         }
         for (unsigned i = 0; i < pathname_ids.size(); i++) {
-            for (unsigned j = 0; j < task_ids.size(); j+=100) {
+            for (unsigned j = 0; j < task_ids.size(); j+=task_ids.size()/10) {
 #if COMPRESSED
-                // TODO
                 times.push_back(measure<>::execution(q, &CompressedQuerier::friends_of, pathname_ids[i], task_ids[j]));
 #else
                 times.push_back(measure<>::execution(q, &DummyQuerier::friends_of, pathname_ids[i], task_ids[j]));
@@ -109,8 +108,8 @@ int main(int argc, char *argv[]) {
     }
     // all_paths
     else if (query == 6) {
-        for (unsigned i = 0; i < ids.size(); i+=200) {
-            for (unsigned j = 10; j < ids.size(); j+=500) {
+        for (unsigned i = 0; i < ids.size(); i+=ids.size()/10) {
+            for (unsigned j = 10; j < ids.size(); j+=ids.size()/10) {
                 auto start = std::chrono::steady_clock::now();
                 q.all_paths(ids[i], ids[j]);
                 auto duration = std::chrono::duration_cast<std::chrono::nanoseconds> (std::chrono::steady_clock::now() - start);
@@ -122,7 +121,7 @@ int main(int argc, char *argv[]) {
     // all other queries
     else {
         cerr << "RUNNING QUERY " << query << endl;
-        for (unsigned i = 0; i < ids.size(); i+= 100) {
+        for (unsigned i = 0; i < ids.size(); i+= ids.size()/10) {
             cerr << ids[i] << " ";
             switch(query) {
             case (0):

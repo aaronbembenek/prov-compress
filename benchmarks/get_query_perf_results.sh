@@ -9,27 +9,13 @@ touch results/$cfile
 
 export BESAFE=0
 
-# dummy graph
-#cd ../querier
-#make clean && export COMPRESSED=0 && make query
-#cd ../benchmarks
-
-#for f in results/*.prov; do
-#    echo File $f
-#    cd ../querier 
-#    (echo File $f) >> ../benchmarks/results/$dfile
-#    for q in ${queries[@]}; do
-#        ./query --query=$q --auditfile=../benchmarks/$f >> ../benchmarks/results/$dfile
-#    done
-#    cd ../benchmarks
-#done
-
 # compressed
 cd ../querier
 make clean && export COMPRESSED=1 && make query
+cd ../benchmarks
 
 # perf compressed graph 
-for f in ../benchmarks/results/*.prov; do
+for f in results/*.prov; do
     echo File $f
     cd ../compression && ./main.py ../benchmarks/$f 
     cd ../querier 
@@ -39,3 +25,20 @@ for f in ../benchmarks/results/*.prov; do
     done
     cd ../benchmarks
 done
+
+# dummy graph
+cd ../querier
+make clean && export COMPRESSED=0 && make query
+cd ../benchmarks
+
+for f in results/*.prov; do
+    echo File $f
+    cd ../querier 
+    (echo File $f) >> ../benchmarks/results/$dfile
+    for q in ${queries[@]}; do
+        ./query --query=$q --auditfile=../benchmarks/$f >> ../benchmarks/results/$dfile
+    done
+    cd ../benchmarks
+done
+
+

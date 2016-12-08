@@ -32,7 +32,6 @@ class Plotter():
                     size_dict["commonstr"] = sizes[8]
                     data[curfile]["sizes"] = size_dict
 
-        '''
         with open(COMPRESSION_PERF_FILE, 'r') as f:
             curquery = 0
             for line in f.readlines():
@@ -61,11 +60,10 @@ class Plotter():
                     data[curfile]["dqueries"][curquery]["vm"] = vm
                 else:
                     data[curfile]["dqueries"][curquery]["times"] = [int(i.strip(' ')) for i in line.strip('\n').split(',')[:-1]]
-        '''
         self.data = data 
 
     def construct_graph_data(self):
-        self.queries = [0,1,2,3,4,5,6]
+        self.queries = [0,1,2,3,4,5]
         self.query_to_label = {
             0: "get_metadata",
             1: "all_ancestors",
@@ -97,14 +95,12 @@ class Plotter():
                     float(self.data[f]["sizes"]["graph"])
                     /float(self.data[f]["sizes"]["original"]))
             self.sizes.append(float(self.data[f]["sizes"]["original"]))
-            self.times.append(float(self.data[f]["time"]))
-            '''
+            #self.times.append(float(self.data[f]["time"]))
             for q in self.queries:
-                self.dummy_qs[f].setdefault(q, []).append(list(map(float,(self.data[f]['dqueries'][q]["times"][:-1]))))
-                self.compressed_qs[f].setdefault(q, []).append(list(map(float,self.data[f]['cqueries'][q]["times"][:-1])))
+                self.dummy_qs[f].setdefault(q, []).append(list(map(lambda x: float(x)/1000,(self.data[f]['dqueries'][q]["times"][:-1]))))
+                self.compressed_qs[f].setdefault(q, []).append(list(map(lambda x : float(x)/1000,self.data[f]['cqueries'][q]["times"][:-1])))
                 self.dummy_vm[q].append(float(self.data[f]['dqueries'][q]['vm']))
                 self.compressed_vm[q].append(float(self.data[f]['cqueries'][q]['vm']))
-            '''
 
     def proportions_graph(self):
         ''' 
@@ -114,18 +110,20 @@ class Plotter():
         x1 = range(len(self.x_labels)) 
         x2 = [x+width for x in x1]
        
-        fig = plt.figure(figsize=(15,10))
+        fig = plt.figure(figsize=(15,15))
         ax = fig.add_subplot(111)
         rects1 = ax.bar(x1, self.xz, width, color='black')
         rects2 = ax.bar(x2, self.metadata, width, color='red')
         rects3 = ax.bar(x2, self.graph, width, color='green', bottom=self.metadata)
 
+        ax.set_ylim(0,0.1)
         ax.set_xlim(-width,len(x1)+width)
-        ax.set_xlabel('Provenence Data Files (ordered by increasing size)', fontsize=14)
-        ax.set_ylabel('Proportion of Original Data', fontsize=14)
-        ax.set_title('Compression Size Results: Proportion of Original Data', fontsize=18)
+        ax.set_xlabel('Provenence Data Files (ordered by increasing size)', fontsize=20)
+        ax.set_ylabel('Proportion of Original Data', fontsize=20)
+        ax.set_title('Compression Size Results: Proportion of Original Data', fontsize=24)
         xTickMarks = self.x_labels 
-        ax.set_xticks(x1)
+        ax.set_xticks([])
+        plt.setp(ax.get_yticklabels(), fontsize=18)
         #xtickNames = ax.set_xticklabels(xTickMarks)
         #plt.setp(xtickNames, rotation=45, fontsize=10)
         
@@ -138,7 +136,7 @@ class Plotter():
         ''' 
         plot of initial size vs. compression time 
         '''
-        fig = plt.figure(figsize=(15,10))
+        fig = plt.figure(figsize=(10,10))
         ax = fig.add_subplot(111)
 
         ax.set_xlim(min(self.sizes)-100,max(self.sizes)+100)
@@ -156,16 +154,19 @@ class Plotter():
         x2 = [x+width for x in x1]
 
         for q in self.queries:
-            fig, axes = plt.subplots(ncols=len(self.x_labels), sharey=True)
+            fig, axes = plt.subplots(ncols=len(self.x_labels), sharey=True, figsize=(15,10))
             fig.subplots_adjust(wspace=0)
             for ax, name in zip(axes, self.x_labels):    
-                ax.boxplot([self.dummy_qs[name][q], self.compressed_qs[name][q]], showfliers=False)
-                ax.set(xticklabels=['Dummy', 'Compressed'])
-                ax.margins(0.05) # Optional
+                box = ax.boxplot([self.dummy_qs[name][q], self.compressed_qs[name][q]], showfliers=False, patch_artist=True)
+                box['boxes'][0].set_facecolor("black")
+                box['boxes'][1].set_facecolor("yellow")
+                plt.setp(ax.get_yticklabels(), fontsize=18)
+                ax.set_xticks([])
        
-            fig.text(0.5, 0.04, 'Provenance Data Files (ordered by increasing size)', ha='center')
-            fig.text(0.04, 0.5, 'Time to perform 50 Queries (ns)', va='center', rotation='vertical')
-            fig.suptitle('Performance of Query %s' % self.query_to_label[q])
+            axes[1].legend( (box['boxes'][0], box['boxes'][1]), ('Uncompressed', 'Compressed'), loc='best')
+            fig.text(0.5, 0.04, 'Provenance Data Files (ordered by increasing size)', ha='center', fontsize=20)
+            fig.text(0.04, 0.5, 'Time to perform query (ms)', va='center', rotation='vertical', fontsize=20)
+            fig.suptitle('%s performance' % self.query_to_label[q], fontsize=24)
             plt.savefig("results/perf_%s.png" % self.query_to_label[q])
             plt.show()
             plt.close()
@@ -176,14 +177,16 @@ class Plotter():
         x2 = [x+width for x in x1]
 
         # plot of memory usage
-        fig = plt.figure()
+        fig = plt.figure(figsize=(15,15))
         ax = fig.add_subplot(111)
         rects1 = ax.bar(x1,self.dummy_vm[0], width, color="black")
         rects2 = ax.bar(x2,self.compressed_vm[0], width, color="red")
-        ax.legend( (rects1[0], rects2[0]), ('Uncompressed', 'Compressed'))
-        ax.set_xlabel('Provenance Data Files (ordered by increasing size)')
-        ax.set_ylabel('Virtual Memory Used (Kb)')
-        ax.set_title('Virtual Memory Consumption')
+        ax.legend( (rects1[0], rects2[0]), ('Uncompressed', 'Compressed'), loc='upper left', fontsize=16)
+        ax.set_xticks([])
+        plt.setp(ax.get_yticklabels(), fontsize=18)
+        ax.set_xlabel('Provenance Data Files (ordered by increasing size)', fontsize=20)
+        ax.set_ylabel('Virtual Memory Used (Kb)', fontsize=20)
+        ax.set_title('Virtual Memory Consumption', fontsize=24)
         plt.savefig("results/mem.png")
         plt.show()
         plt.close()
@@ -191,9 +194,9 @@ class Plotter():
 def main():
     p = Plotter()
     p.construct_graph_data()
-    p.proportions_graph()
-    p.compression_times_graph()
-    #p.query_perf_graphs()
+    #p.proportions_graph()
+    #p.compression_times_graph()
+    p.query_perf_graphs()
     #p.query_mem_graphs()
 
 if __name__ == "__main__":

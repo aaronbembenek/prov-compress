@@ -15,7 +15,7 @@
 #include<bitset>
 #include <chrono> 
 
-#define NUM_REPS 50
+#define NUM_REPS 1
 
 #define DICT_BEGIN '{'
 #define DICT_END '}'

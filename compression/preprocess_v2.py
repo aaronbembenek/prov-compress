@@ -283,6 +283,43 @@ class ForwardBfsRanker(BfsRanker):
     def rank(self):
         return self._rank(self.collapsed.get_outgoing_edges)
 
+    def _get_visiting_order(self):
+        return sorted(self.collapsed.get_vertices(), reverse=True)
+
+class DfsRanker(BfsRanker):
+
+    def _rank(self, get_edges):
+        order = self._get_visiting_order()
+        rank = 0
+        self.rankings = {}
+        rank = 0
+        for v in order:
+            if v not in self.rankings:
+                rank = self._dfs(rank, v, get_edges)
+        return self.rankings
+
+    def _dfs(self, rank, v, get_edges):
+        assert v not in self.rankings
+        rank = self._rank_collapsed(v, rank)
+        dests = [e.dest for e in get_edges(v)]
+        for d in dests:
+            if d not in self.rankings:
+                rank = self._dfs(rank, d, get_edges)
+        return rank
+
+class TransposeDfsRanker(DfsRanker):
+
+    def rank(self):
+        return self._rank(self.collapsed.get_incoming_edges)
+
+class ForwardDfsRanker(DfsRanker):
+
+    def rank(self):
+        return self._rank(self.collapsed.get_outgoing_edges)
+
+    def _get_visiting_order(self):
+        return sorted(self.collapsed.get_vertices(), reverse=True)
+
 def main():
     with open("example.json") as f:
         json_obj = " ".join([line.strip() for line in f])
